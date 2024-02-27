@@ -21,7 +21,8 @@
  *
  * 数据解压
  *      T.unzip(Blob);
- *      
+ * 
+ * 如果导入数据存在图片或者地址,会缓存到 '-UPLOAD-DATA',其中文件明明必须是 数据ID+文件扩展名
  */
 "use strict";
 const CACHE_NAME = 'N-VIDEO';
@@ -573,13 +574,15 @@ const T = new class {
                 let limitext = ((page-1)*limit)+','+limit;
                 let data = db.query('data',where,ordertext,limitext,!0);
                 if(data){
+                    let UploadCache = await this.T.openCache('-UPLOAD-DATA');
                     for(let items of data){
                         let itemid = items['id'];
                         let img = items['img'];
-                        let img2 = '/upload/data/'+itemid+'.'+img.split('.').pop();
+                        let imgext = img ? img.split('.').pop():'jpg';
+                        let img2 = '/upload/data/'+itemid+'.'+imgext;
                         templates.list.push({
                             url:`/PLAY/${items['id']}/`,
-                            img:await cache.match(img2)?img2:img,
+                            img:await UploadCache.match(img2)?img2:img,
                             name:items['title']
                         });
                     }
@@ -645,19 +648,28 @@ const T = new class {
             if(!isNaN(id)){
                 itemdata = db.query('data',{id},!1,1);
                 if(itemdata){
+                    let UploadCache = await this.T.openCache('-UPLOAD-DATA');
                     let img = itemdata['img'];
-                    let img2 = '/upload/data/'+itemdata['id']+'.'+img.split('.').pop();
-                    let imgsrc = await cache.match(img2)?img2:img;
-                    if(!itemdata['url'])itemdata['url'] = '/upload/data/'+itemdata['id']+'.m3u8';
-                    let m3u8 = itemdata['url'].split(',');
-                    templates = {
-                        title:itemdata['title'],
-                        search:params.get('search')||'',
-                        topnav:[itemdata['title']],
-                        imgsrc,
-                        m3u8,
-                    };
-                    response = await this.getTemplate('/assets/template-play.html',cache);
+                    let imgext = img ? img.split('.').pop():'jpg';
+                    let img2 = '/upload/data/'+itemdata['id']+'.'+imgext;
+                    let imgsrc = await UploadCache.match(img2)?img2:img;
+                    if(!itemdata['url']){
+                        let m3u8 = '/upload/data/'+itemdata['id']+'.m3u8';
+                        if(await UploadCache.match(m3u8)){
+                            itemdata['url'] = m3u8;
+                        }
+                    }
+                    if(itemdata['url']){
+                        let m3u8 = itemdata['url'].split(',');
+                        templates = {
+                            title:itemdata['title'],
+                            search:params.get('search')||'',
+                            topnav:[itemdata['title']],
+                            imgsrc,
+                            m3u8,
+                        };
+                        response = await this.getTemplate('/assets/template-play.html',cache);
+                    }
                 }
             }
         }
