@@ -6,7 +6,8 @@
                 let elm = document.querySelector('#pwa-register');
                 if(elm){
                     elm.showPopover();
-                    setTimeout(()=>location.reload(),1000);
+                    clearTimeout(T.timer);
+                    T.timer = setTimeout(()=>location.reload(),1000);
                 }
 
             }
@@ -23,6 +24,9 @@
         }
         async unregister(){
             (await navigator.serviceWorker.ready).unregister();
+        }
+        async update(){
+            (await navigator.serviceWorker.ready).update();
         }
         async ReadMessage(event){
             let data = event.data;

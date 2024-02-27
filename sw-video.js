@@ -27,7 +27,7 @@
 "use strict";
 const CACHE_NAME = 'N-VIDEO';
 const CACHE_SQL_PATH = '/assets/sql.dat';
-const version = Date.parse('2024 02/22 00:00');
+const version = Date.parse('Tue, 27 Feb 2024 02:21:47 GMT');
 const CACHE_ORIGIN = location.origin;
 //https://unpkg.com/ejs@3.1.9/ejs.min.js
 //https://unpkg.com/sql.js@1.10.2/dist/sql-wasm.js
@@ -44,15 +44,35 @@ const T = new class {
         return await caches.open(name2);
     }
     async LoaclCache(request,cache){
-        if(this.isLocal)return await fetch(request);
+        if(!0||this.isLocal)return await fetch(request);
         if(!cache)cache = await this.openCache();
         let url = request&&request.url?this.toLink(this.toPath(request)):request;
         let response = await cache.match(url);
+        if(response){
+            let cachetime = response.headers.get('date');
+            if(cachetime<version){
+                response = null;
+            }
+        }
         if(!response){
             response = await fetch(request);
             response&&cache.put(url,response.clone());
         }
         return response||this.toStatus(404);
+    }
+    async checkUpate(){
+        let cache = await this.openCache();
+        let size = 0;
+        await Promise.all((await cache.keys()).map(async request=>{
+            if(request.url.indexOf(CACHE_SQL_PATH)!== -1) return;
+            let modified = (await fetch(request.url+'?'+version,{method:'HEAD'})).headers.get('last-modified');
+            let cachetime = (await cache.match(request)).headers.get('last-modified');
+            if(modified!=cachetime){
+                size ++;
+                await cache.put(request.url,(await fetch(request.url)).clone());
+            }
+        }));
+
     }
     async CdnCache(request,NAME){
         let cache = await this.openCache(NAME);
@@ -170,21 +190,6 @@ const T = new class {
         return Array.from(data,fn);
     }
     action = {};
-    async checkUpate(){
-        let cache = await this.openCache();
-        let size = 0;
-        await Promise.all((await cache.keys()).map(async request=>{
-            if(request.url.indexOf(CACHE_SQL_PATH)!== -1) return;
-            let modified = (await fetch(request.url+'?'+version,{method:'HEAD'})).headers.get('last-modified');
-            let cachetime = (await cache.match(request)).headers.get('last-modified');
-            if(modified!=cachetime){
-                size ++;
-                await cache.put(request.url,(await fetch(request.url)).clone());
-            }
-        }));
-
-    }
-
     getParams(url){
         let pathname = this.toPath(url.toLowerCase()).split('?');
         let params = new Map();
@@ -693,15 +698,14 @@ Object.entries({
     },
     activate(event) {
         console.log('serviceWorker activate');
-        return event.waitUntil(
-            T.checkUpate().then(async ()=>{
-                if(T.SW)T.SW.postMessage({method:'pwa_activate'});
-                for(let client of await T.getClients()){
-                    client.postMessage({method:'pwa_activate'});
-                }
-                return self.skipWaiting();
-            })
-        );
+        return event.waitUntil(new Promise(async ok=>{
+            if(T.SW)T.SW.postMessage({method:'pwa_activate'});
+            T.SW = null;
+            for(let client of await T.getClients()){
+                client.postMessage({method:'pwa_activate'});
+            }
+            ok(self.skipWaiting());
+        }));
     },
     fetch(event) {
         const request = event.request;
@@ -771,11 +775,6 @@ Object.entries({
                 switch(method){
                     case 'register':{
                         T.SW = source;
-                        break;
-                    }
-                    case 'update':{
-                        await T.checkUpate();
-                        await source.postMessage({clientID,result:!0});
                         break;
                     }
                     case 'upload':{
