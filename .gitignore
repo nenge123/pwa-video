@@ -2,5 +2,5 @@ _site
 .sass-cache
 .jekyll-cache
 .jekyll-metadata
-assets/source.zip
+/assets/source.zip
 vendor
