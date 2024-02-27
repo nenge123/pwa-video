@@ -18,6 +18,32 @@
         async update(){
             (await navigator.serviceWorker.ready).update();
         }
+        showWin(id){
+            let elm = document.querySelector(id);
+            let mask = elm.parentNode;
+            if(mask&&mask.classList.contains('w-mask')){
+                return elm.dispatchEvent(new CustomEvent('show')),elm;
+            }
+            mask = document.body.appendChild(document.createElement('div'));
+            mask.classList.add('w-mask');
+            mask.appendChild(elm);
+            elm.addEventListener('show',function(){
+                this.parentNode.hidden = !1;
+                document.body.classList.add('hidebar');
+            });
+            elm.addEventListener('hide',function(){
+                this.parentNode.hidden = !0;
+                document.body.classList.remove('hidebar');
+            });
+            mask.addEventListener('click',function(e){
+                if(this===e.target){
+                    this.hidden = !0;
+                    document.body.classList.remove('hidebar');
+                }
+            });
+            document.body.classList.add('hidebar');
+            return elm;
+        }
         async ReadMessage(event){
             let data = event.data;
             let source = event.source;
@@ -33,18 +59,16 @@
                     }else{
                         switch(method){
                             case 'pwa_activate':{
-                                let elm = document.querySelector('#pwa-register');
+                                let elm = this.showWin('#pwa-register');
                                 if(elm){
-                                    elm.showPopover();
                                     clearTimeout(T.timer);
                                     T.timer = setTimeout(()=>location.reload(),1000);
                                 }
                                 break;
                             }
                             case 'notice':{
-                                let dialogElm = document.querySelector('#pwa-notice');
+                                let dialogElm = this.showWin('#pwa-notice');
                                 dialogElm.querySelector('.content').innerHTML = data.result||'更新成功';
-                                dialogElm.showPopover();
                                 if(data.reload){
                                     clearTimeout(this.timer);
                                     this.timer = setTimeout(
@@ -55,9 +79,8 @@
                                 break;
                             }
                             case 'log':{
-                                let dialogElm = document.querySelector('#pwa-notice');
+                                let dialogElm = this.showWin('#pwa-notice');
                                 dialogElm.querySelector('.content').innerHTML = data.result||'更新成功';
-                                dialogElm.showPopover();
                                 break;
                             }
                         }
@@ -276,6 +299,15 @@
                 this.remove();
             },{once:!0});
             upload.click();
+        }
+        constructor(){
+            document.addEventListener('readystatechange',function(){
+                if(document.readyState=='complete'){
+                    document.querySelector('#btn-update-cache').addEventListener('click',function(){
+                        T.showWin('#admin-act')
+                    });
+                }
+            });
         }
     }
     let sw = navigator.serviceWorker;
