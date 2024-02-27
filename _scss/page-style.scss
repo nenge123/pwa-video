@@ -1089,6 +1089,10 @@ dialog.wbox {
         list-style: none;
         li{
             margin: 8px 0px;
+            >p{
+                margin: 1px;
+                padding: 1px;
+            }
         }
     }
 }

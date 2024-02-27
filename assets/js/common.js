@@ -40,7 +40,7 @@
                         switch(method){
                             case 'notice':{
                                 let dialogElm = document.querySelector('#pwa-notice');
-                                if(data.result)dialogElm.querySelector('.content').innerHTML = data.result;
+                                dialogElm.querySelector('.content').innerHTML = data.result||'更新成功';
                                 dialogElm.showPopover();
                             }
                         }
