@@ -314,7 +314,7 @@ const T = new class {
                     }).join(',');
                     this.run(`CREATE TABLE \`${entry[0]}\` (${str});`);
                 });
-                if(this.T.isLocal){
+                if(!1&&this.T.isLocal){
                     let response = await fetch('/assets/source.zip').catch(e=>null);
                     if(response){
                         let data = await this.T.unzip(
@@ -530,27 +530,6 @@ const T = new class {
         }
         return db;
     }
-    async runSQL(data){
-        let cache = await this.openCache();
-        let db = await this.readSQL(cache);
-        switch(data.mode){
-            case 'insert':{
-                db.run(sql_text_insert,this.sql_conlums.map(v=>{
-                    return data.values[v]||'';
-                }));
-                return this.writeSQL(db);
-            }
-            case 'inserts':{
-                for(let items of data.values){
-                    db.run(sql_text_insert,this.sql_conlums.map(v=>{
-                        return items[v]||'';
-                    }));
-                }
-                return this.writeSQL(db);
-            }
-        }
-        db.toFree();
-    }
     async fetchByIndex(params){
         let cache = await this.openCache();
         let response;
@@ -562,8 +541,12 @@ const T = new class {
             topnav:[],
             navpage:[],
             navtags:[],
+            maxnum:0,
+            maxpage:0,
+            error:'请到[缓存管理]导入数据!',
         };
         if(db){
+            response = await this.getTemplate('/assets/template-home.html',cache);
             let where = {};
             let tag = params.get('tag');
             let search = params.get('search');
@@ -637,10 +620,13 @@ const T = new class {
                 this.toArray(tags,entry=>{
                     templates.navtags.push([entry['name'],entry['num']]);
                 });
-                templates.maxnum = maxnum;
-                templates.maxpage = maxpage;
-                templates.navpage = leftnavs.concat(rightnavs);
-                response = await this.getTemplate('/assets/template-home.html',cache);
+                Object.assign(templates,{
+                    maxnum,
+                    maxpage,
+                    navpage:leftnavs.concat(rightnavs)
+                });
+            }else{
+                templates.error = '未能找得到符合条件数据,请返回首页重试!';
             }
             db.toFree();
         }
@@ -657,9 +643,12 @@ const T = new class {
             title:'未找到影片',
             search:'',
             topnav:['影片不存在'],
-            m3u8:[]
+            m3u8:[],
+            imgsrc:'',
+            error:'未能找到符合条件影片,请返回首页重试!',
         };
         if(db){
+            response = await this.getTemplate('/assets/template-play.html',cache);
             let id = params.get('id');
             let itemdata;
             if(!isNaN(id)){
@@ -678,17 +667,19 @@ const T = new class {
                     }
                     if(itemdata['url']){
                         let m3u8 = itemdata['url'].split(',');
-                        templates = {
+                        Object.assign(templates,{
                             title:itemdata['title'],
                             search:params.get('search')||'',
                             topnav:[itemdata['title']],
                             imgsrc,
                             m3u8,
-                        };
-                        response = await this.getTemplate('/assets/template-play.html',cache);
+                        });
                     }
                 }
+            }else{
+
             }
+            db.toFree();
         }
         if(!response)return this.LoaclCache('/index.html',cache);
         response =  ejs.compile(response)(templates);
