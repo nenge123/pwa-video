@@ -321,7 +321,7 @@ const T = new class {
                 let UploadCache = await this.T.openCache('-UPLOAD-DATA');
                 this.T.toArray(data,entry=>{
                     if(/\.json$/.test(entry[0])){
-                        let sqldata = JSON.parse(new TextDecoder().decode(entry[1]));
+                        let sqldata = (new Function('return '+new TextDecoder().decode(entry[1])))();
                         if(sqldata&&sqldata.constructor === Array){
                             for(let items of sqldata){
                                 let id = items['id'];
