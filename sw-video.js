@@ -314,14 +314,18 @@ const T = new class {
                     }).join(',');
                     this.run(`CREATE TABLE \`${entry[0]}\` (${str});`);
                 });
-                let response = await fetch('/assets/source.zip').catch(e=>null);
-                if(response){
-                    let data = await this.T.unzip(
-                        await response.blob(),
-                        this.password
-                    );
-                    await this.writeByData(data,cache);
-                    data = null;
+                if(this.T.isLocal){
+                    let response = await fetch('/assets/source.zip').catch(e=>null);
+                    if(response){
+                        let data = await this.T.unzip(
+                            await response.blob(),
+                            this.password
+                        );
+                        await this.writeByData(data,cache);
+                        data = null;
+                    }
+                }else{
+                    this.save();
                 }
             },
             /**
