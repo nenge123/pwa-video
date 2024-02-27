@@ -296,13 +296,20 @@ const T = new class {
             async writeByData(data,cache){
                 if(!cache)cache = await this.T.openCache();
                 let UploadCache = await this.T.openCache('-UPLOAD-DATA');
+                let keys = Object.keys(this.columns['data']);
+                let sql = this.getInsert('data',this.getFill(keys),this.getFill(keys,'?'));
+                let sql2 = this.getSelect('data','`id`',['id']);
+                let sql3 = this.getDelete('data',['id']);
                 this.T.toArray(data,entry=>{
                     if(/\.json$/.test(entry[0])){
                         let sqldata = (new Function('return '+new TextDecoder().decode(entry[1])))();
                         if(sqldata&&sqldata.constructor === Array){
                             for(let items of sqldata){
                                 let id = items['id'];
-                                this.reInsert('data',items,'id');
+                                if(this.fetchResult(sql2,[id])){
+                                    this.run(sql3,[id]);
+                                }
+                                this.run(sql,this.getFillData(keys,!1,items));
                                 if(items['type']){
                                     this.writeByType(items['type']);
                                 }
@@ -310,7 +317,10 @@ const T = new class {
                         }else if(sqldata&&sqldata.constructor === Object){
                             for(let id in sqldata){
                                 let items = sqldata[id];
-                                this.reInsert('data',items,'id');
+                                if(this.fetchResult(sql2,[id])){
+                                    this.run(sql3,[id]);
+                                }
+                                this.run(sql,this.getFillData(keys,!1,items));
                                 this.writeByType(items['type']);
                             }
                         }
@@ -368,9 +378,11 @@ const T = new class {
              * @param {*} column 
              * @returns 
              */
-            getSelect(table,column){
+            getSelect(table,column,where,like){
+                let str = '';
                 column = column===!0?'count(*)':typeof column==='string'&&column?column:'*';
-                return `SELECT ${column} FROM \`${table}\` `;
+                if(where)str = this.getWhere(where,like);
+                return `SELECT ${column} FROM \`${table}\` `+str;
             },
             /**
              * 获取插入语句
