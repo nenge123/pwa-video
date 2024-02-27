@@ -43,7 +43,7 @@
       <span class="p-locality">GuangZhou</span>
       <span class="p-country-name">China</span>
     </p>
-    <p><button onclick="T.postMessage({method:'checkurl',result:location.url})">test</button></p>
+    <p><button onclick="T.postMessage({method:'checkurl',result:location.href})">test</button></p>
   </footer>
   <dialog id="pwa-register" class="wbox info" popover>
     <div class="title">
@@ -56,23 +56,26 @@
       <div class="title">管理中心</div>
       <div class="content">
         <ul>
-          <li><button onclick="T.upload();">上传数据</button></li>
           <li>
-            <button onclick="T.postMessage({method:'clear',name:'-CROSS-IMAGES'});">清空TS视频缓存</button>
+            <button onclick="T.upload();">上传数据</button>
+            <p>上传后请等待数据处理,直到信息返回!</p>
+          </li>
+          <li>
+            <button onclick="T.postMessage({method:'clear',result:'-CROSS-IMAGES'});">清空TS视频缓存</button>
             <p>所有播放的缓存再次播放不消耗缓存,同时会占用大量储存,储存不足可以考虑删除</p>
           </li>
           <li>
-            <button onclick="T.postMessage({method:'clear',name:'-CROSS-TS'});">清空图片缓存</button>
+            <button onclick="T.postMessage({method:'clear',result:'-CROSS-TS'});">清空图片缓存</button>
           </li>
           <li>
-            <button onclick="T.postMessage({method:'clear',name:'-CROSS-M3U8'});">清空远程视频地址缓存</button>
+            <button onclick="T.postMessage({method:'clear',result:'-CROSS-M3U8'});">清空远程视频地址缓存</button>
           </li>
           <li>
-            <button onclick="T.postMessage({method:'clear',name:'-CROSS-DATA'});">清空本地视频数据</button>
+            <button onclick="T.postMessage({method:'clear',result:'-CROSS-DATA'});">清空本地视频数据</button>
             <p>一旦清空,一些存在本地的数据(地址和图片)可能无法播放和显示</p>
           </li>
           <li>
-            <button onclick="T.postMessage({method:'clear',name:''});">清空本地</button>
+            <button onclick="T.postMessage({method:'clear',result:''});">清空本地</button>
             <p>一旦清空,当前数据记录全部丧失</p>
           </li>
           <li>

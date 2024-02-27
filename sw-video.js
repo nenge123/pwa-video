@@ -87,7 +87,7 @@ const T = new class {
         return response;
     }
     async unzip(result,password,clientID,source){
-        const ReaderList = await new zip.ZipReader(
+        let ReaderList = await new zip.ZipReader(
             new zip.BlobReader(result instanceof Blob?result:new Blob([result]))
         ).getEntries().catch(e=>false);
         if(!ReaderList||!ReaderList.length) return false;
@@ -122,6 +122,7 @@ const T = new class {
         }
         password = null;
         result = null;
+        ReaderList = null;
         return contents||false;
     }
     async getMessage(ARG,source){
@@ -190,6 +191,7 @@ const T = new class {
     }
     action = {};
     getParams(url){
+        console.log(url);
         let pathname = this.toPath(url.toLowerCase()).split('?');
         let params = new Map();
         let str = pathname[0].split('#')[0];
@@ -784,25 +786,32 @@ Object.entries({
                         await Promise.all(Array.from(result,async file=>{
                             let data = await T.unzip(file,db.password);
                             if(data)return await db.writeByData(data,cache);
+                            data = null;
                         }));
                         db.toFree();
                         source.postMessage({
                             method:'notice',
-                            result:'插入数据已更新'
+                            result:'插入数据已更新',
+                            reload:!0
                         });
+                        break;
                     }
                     case 'clear':{
-                        await caches.delete(CACHE_NAME+data.name);
+                        console.log(method,result);
+                        if(result===undefined&&typeof result !=='string')return ;
+                        await caches.delete(CACHE_NAME+result);
                         source.postMessage({
                             method:'notice',
-                            result:'数据已删除'
+                            result:'数据已删除',
                         });
+                        break;
                     }
                     case 'checkurl':{
                         source.postMessage({
                             method:'log',
-                            result:T.getParams(data.result).get('router')
+                            result:T.getParams(result).get('router')
                         });
+                        break;
                     }
                 }
                 result = null;

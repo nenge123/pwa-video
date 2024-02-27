@@ -1,17 +1,7 @@
 (function(){
     const isLocal = /^(127|localhost)/.test(location.host);
     self.T = new class{
-        action = {
-            pwa_activate(){
-                let elm = document.querySelector('#pwa-register');
-                if(elm){
-                    elm.showPopover();
-                    clearTimeout(T.timer);
-                    T.timer = setTimeout(()=>location.reload(),1000);
-                }
-
-            }
-        };
+        action = {};
         async postMessage(data,swc){
             let ctrl = swc||(await navigator.serviceWorker.ready).active;
             return ctrl.postMessage(data)
@@ -42,15 +32,33 @@
                         await this.action[method](data,source);
                     }else{
                         switch(method){
+                            case 'pwa_activate':{
+                                let elm = document.querySelector('#pwa-register');
+                                if(elm){
+                                    elm.showPopover();
+                                    clearTimeout(T.timer);
+                                    T.timer = setTimeout(()=>location.reload(),1000);
+                                }
+                                break;
+                            }
                             case 'notice':{
                                 let dialogElm = document.querySelector('#pwa-notice');
                                 dialogElm.querySelector('.content').innerHTML = data.result||'更新成功';
                                 dialogElm.showPopover();
+                                if(data.reload){
+                                    clearTimeout(this.timer);
+                                    this.timer = setTimeout(
+                                        ()=>location.reload(),
+                                        2000
+                                    );
+                                }
+                                break;
                             }
                             case 'log':{
                                 let dialogElm = document.querySelector('#pwa-notice');
                                 dialogElm.querySelector('.content').innerHTML = data.result||'更新成功';
                                 dialogElm.showPopover();
+                                break;
                             }
                         }
                     }
