@@ -574,7 +574,7 @@ const T = new class {
                 let limitext = ((page-1)*limit)+','+limit;
                 let data = db.query('data',where,ordertext,limitext,!0);
                 if(data){
-                    let UploadCache = await this.T.openCache('-UPLOAD-DATA');
+                    let UploadCache = await this.openCache('-UPLOAD-DATA');
                     for(let items of data){
                         let itemid = items['id'];
                         let img = items['img'];
@@ -648,7 +648,7 @@ const T = new class {
             if(!isNaN(id)){
                 itemdata = db.query('data',{id},!1,1);
                 if(itemdata){
-                    let UploadCache = await this.T.openCache('-UPLOAD-DATA');
+                    let UploadCache = await this.openCache('-UPLOAD-DATA');
                     let img = itemdata['img'];
                     let imgext = img ? img.split('.').pop():'jpg';
                     let img2 = '/upload/data/'+itemdata['id']+'.'+imgext;
