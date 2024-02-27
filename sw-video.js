@@ -34,8 +34,8 @@ const CACHE_ORIGIN = location.origin;
 //https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js
 importScripts(
     '/assets/js/lib/zip.min.js?'+version,
-    '/assets/js/lib/sql.min.js?'+version,
-    '/assets/js/lib/ejs.min.js?'+version,
+    'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js',//'/assets/js/lib/sql.min.js?'+version,
+    'https://unpkg.com/ejs@3.1.9/ejs.min.js',//'/assets/js/lib/ejs.min.js?'+version,
 );
 const T = new class {
     async openCache(name){
