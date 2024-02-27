@@ -27,7 +27,7 @@
 "use strict";
 const CACHE_NAME = 'N-VIDEO';
 const CACHE_SQL_PATH = '/assets/sql.dat';
-const version = Date.parse('Tue, 27 Feb 2024 02:21:47 GMT');
+const version = Date.parse('Tue, 27 Feb 2024 14:31:11 GMT');
 const CACHE_ORIGIN = location.origin;
 //https://unpkg.com/ejs@3.1.9/ejs.min.js
 //https://unpkg.com/sql.js@1.10.2/dist/sql-wasm.js
@@ -42,14 +42,18 @@ const T = new class {
         return await caches.open(name2);
     }
     async LoaclCache(request,cache){
-        if(!0||this.isLocal)return await fetch(request);
+        if(this.isLocal)return await fetch(request);
         if(!cache)cache = await this.openCache();
         let url = request&&request.url?this.toLink(this.toPath(request)):request;
         let response = await cache.match(url);
-        if(response){
+        if(response&&navigator.onLine){
             let cachetime = response.headers.get('date');
             if(cachetime<version){
-                response = null;
+                let response2 = await fetch(request).catch(e=>false);
+                if(response2){
+                    cache.put(url,response.clone());
+                    return response2;
+                }
             }
         }
         if(!response){
