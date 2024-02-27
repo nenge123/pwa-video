@@ -644,7 +644,7 @@ const T = new class {
             }
             db.toFree();
         }
-        if(!response)return this.LoaclCache('/assets/template-error.html',cache);
+        if(!response)return this.LoaclCache('/index.html',cache);
         response =  ejs.compile(response)(templates);
         ejs.clearCache();
         return new Response(new Blob([response],{type:'text/html;charset=utf-8'}));
@@ -690,7 +690,7 @@ const T = new class {
                 }
             }
         }
-        if(!response)return this.LoaclCache('/assets/template-error.html',cache);
+        if(!response)return this.LoaclCache('/index.html',cache);
         response =  ejs.compile(response)(templates);
         ejs.clearCache();
         return new Response(new Blob([response],{type:'text/html;charset=utf-8'}));
@@ -742,10 +742,6 @@ Object.entries({
                     }
                     case 'play':{
                         return event.respondWith(T.fetchByPlay(params));
-                        break;
-                    }
-                    case 'install':{
-                        return event.respondWith(T.LoaclCache('/assets/template-install.html'));
                         break;
                     }
                 }
