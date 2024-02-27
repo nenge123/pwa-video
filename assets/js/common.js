@@ -266,6 +266,10 @@
         return alert('你当前访问协议不支持ServiceWorker,需要HTTPS访问!');
     }
     sw.addEventListener('message',event=>self.T.ReadMessage(event));
+    sw.addEventListener('onmessageerror',async event=>{
+        let act = await this.ready;
+        act.update();
+    });
     sw.addEventListener('controllerchange', e =>self.T.postReg(e.active));
     sw.register('/sw-video.js').then(async reg=>{
         console.log(reg.installing?'register':'active');

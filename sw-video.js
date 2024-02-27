@@ -186,9 +186,15 @@ const T = new class {
     }
 
     getParams(url){
-        url = new URL(url);
-        let params = new URLSearchParams(url.search.toLowerCase());
-        let str = url.pathname.split('?')[0].split('#')[0].toLowerCase();
+        let pathname = this.toPath(url.toLowerCase()).split('?');
+        let params = new Map();
+        let str = pathname[0].split('#')[0];
+        if(pathname[1]){
+            for(let entry of pathname[1].split('&')){
+                let keys = entry.split('=');
+                params.set(keys[0],decodeURI(keys[1]||''));
+            }
+        }
         let index = 0;
         if(/^\/[\w\-]+\.html$/.test(str)){
             for(let value of str.split('.html')[0].split('/').pop().split('-')){
@@ -592,11 +598,12 @@ const T = new class {
                 let maxlengh = 8;
                 let leftnavs = [];
                 let rightnavs = [];
-                let urlsearch = new URLSearchParams();
-                if(tag)urlsearch.set('tag',tag);
-                if(search)urlsearch.set('search',search);
-                urlsearch = urlsearch.toString();
-                if(urlsearch)urlsearch = '?'+urlsearch;
+                let urlmap = new Map();
+                if(tag)urlmap.set('tag',tag);
+                if(search)urlmap.set('search',search);
+                let urlsearch = '';
+                for(let a of urlsearch)urlsearch += a[0]+'='+encodeURI(a[1])+'&';
+                if(urlsearch)urlsearch = '?'+urlsearch.slice(0,-1);
                 leftnavs.push(['第一页',`/INDEX/1/${order}${urlsearch}`,page==1]);
                 for(let i=0;i<=8;i++){
                     if(i==0||page+i<maxpage){
