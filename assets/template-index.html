@@ -1,0 +1,24 @@
+---
+layout: default
+---
+<main id="page">
+    <div id="top-info" class="warning-text">
+        <form method="get" class="search" id="page-search">
+            <label>
+                <input type="text" name="search" value="{search}" placeholder="标题关键字">
+                <button>搜索</button>
+            </label>
+        </form>
+        <div class="more">此页是虚拟页面<button id="btn-update-cache" type="button" onclick="document.querySelector('#admin-act').showPopover()">缓存管理</button></div>
+    </div>
+    <div id="page-result">
+        <nav id="site-nav"><span>当前位置:</span><a href="/index/1/">首页</a>{topnav}</nav>
+        {content}
+    </div>
+</main>
+<dialog id="admin-act" class="wbox" popover>
+    <div class="title">管理中心</div>
+    <div class="content">
+
+    </div>
+</dialog>

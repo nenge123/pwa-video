@@ -1,0 +1,49 @@
+---
+layout: default
+---
+<main id="page">
+    <div id="top-info" class="warning-text">
+        <form method="get" action="/INDEX/" class="search" id="page-search">
+            <label>
+                <input type="text" name="search" value="<%- search %>" placeholder="标题关键字">
+                <button>搜索</button>
+            </label>
+        </form>
+        <div class="more">此页是虚拟页面<button id="btn-update-cache" type="button"  popovertarget="admin-act">缓存管理</button></div>
+    </div>
+    <div id="page-result">
+        <nav id="site-nav"><span>当前位置:</span><a href="/INDEX/1/">首页</a><% for(let nav of topnav){ %> / <a href="#"><%- nav %></a><% } %></nav>
+        <% if(typeof list != 'undefined'&&list.length){ %>
+            <nav class="nav-page">
+            <% for(let entry of navpage){ %>
+                <a href="<%- entry[1] %>" class="<%- entry[2]?'active':'' %>"><%- entry[0] %></a>
+            <% } %>
+            <button class="active">共<%- maxnum %>条<%- maxpage %>页</button>
+            </nav>
+            <ul class="sql-item-list">
+                <% for(entry of list){ %>
+                    <li>
+                        <a href="<%- entry.url %>">
+                            <img src="<%- entry.img %>">
+                            <p><%- entry.name %></p>
+                        </a>
+                    </li>
+                <% } %>
+            </ul>
+            <nav class="nav-page">
+            <% for(let entry of navpage){ %>
+                <a href="<%- entry[1] %>" class="<%- entry[2]?'active':'' %>"><%- entry[0] %></a>
+            <% } %>
+            <button class="active">共<%- maxnum %>条<%- maxpage %>页</button>
+            </nav>
+            <h3>标签云</h3>
+            <nav class="tag-list">
+            <% for(let entry of navtags){ %>
+                <a href="/INDEX/?tag=<%- encodeURI(entry[0]) %>"><%= entry[0] %>(<%- entry[1] %>)</a>
+            <% } %>
+            </nav>
+        <% }else{ %>
+            <div class="result-error"><a href="/index.html">搜索结果无数据或者该分类没有数据,点击返回首页</a></div>
+        <% } %>
+    </div>
+</main>
