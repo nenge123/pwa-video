@@ -284,18 +284,59 @@
             }
             return str;
         }
-        upload(){
+        async unzip(result,password){
+            if(!window.zip){
+                await T.addJS('/assets/js/lib/zip.min.js');
+            }
+            let ReaderList = await new zip.ZipReader(
+                new zip.BlobReader(result instanceof Blob?result:new Blob([result]))
+            ).getEntries().catch(e=>false);
+            if(!ReaderList||!ReaderList.length) return false;
+            let contents;
+            const getData = (entry)=>{
+                let rawPassword;
+                if(password){
+                    rawPassword = password instanceof Uint8Array?password:new TextEncoder().encode(password);
+                }
+                return entry.getData(new zip.Uint8ArrayWriter(), {rawPassword:entry.encrypted?rawPassword:undefined}).catch(async e=>{
+                    let msg = e.message;
+                    if(password===false)return;
+                    if(msg == zip.ERR_INVALID_PASSWORD||msg==zip.ERR_ENCRYPTED){
+                        password = window.prompt(password instanceof Uint8Array ? new TextDecoder('gbk').decode(password):password);
+                        if(password){
+                            return await getData(entry);
+                        }else{
+                            password = false;
+                        }
+                    }
+                });
+            }
+            if(ReaderList){
+                for await(let entry of ReaderList){
+                    if(entry.directory)continue;
+                    let data = await getData(entry);
+                    if(data){
+                        if(!contents)contents={};
+                        contents[entry.filename] = data;
+                    }
+                }
+            }
+            password = null;
+            result = null;
+            ReaderList = null;
+            return contents||false;
+        }
+        async upload(){
             let T = this;
             let upload = document.createElement('input');
             upload.type = 'file';
             upload.addEventListener('change',function(){
-                T.postMessage({
-                    method:'upload',
-                    result:Array.from(this.files)
+                Array.from(this.files,async file=>{
+                    T.postMessage({
+                        method:'add-data',
+                        result:await T.unzip(file,'IAM18')
+                    });
                 });
-                this.remove();
-            },{once:!0});
-            upload.addEventListener('cancel',function(){
                 this.remove();
             },{once:!0});
             upload.click();
@@ -316,6 +357,7 @@
     }
     sw.addEventListener('message',event=>self.T.ReadMessage(event));
     sw.addEventListener('onmessageerror',async event=>{
+        alert(event);
         let act = await this.ready;
         act.update();
     });

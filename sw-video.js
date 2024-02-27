@@ -33,7 +33,6 @@ const CACHE_ORIGIN = location.origin;
 //https://unpkg.com/sql.js@1.10.2/dist/sql-wasm.js
 //https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js
 importScripts(
-    '/assets/js/lib/zip.min.js?'+version,
     'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js',//'/assets/js/lib/sql.min.js?'+version,
     'https://unpkg.com/ejs@3.1.9/ejs.min.js',//'/assets/js/lib/ejs.min.js?'+version,
 );
@@ -85,45 +84,6 @@ const T = new class {
             }
         }
         return response;
-    }
-    async unzip(result,password,clientID,source){
-        let ReaderList = await new zip.ZipReader(
-            new zip.BlobReader(result instanceof Blob?result:new Blob([result]))
-        ).getEntries().catch(e=>false);
-        if(!ReaderList||!ReaderList.length) return false;
-        let contents;
-        const getData = (entry)=>{
-            let rawPassword;
-            if(password){
-                rawPassword = password instanceof Uint8Array?password:new TextEncoder().encode(password);
-            }
-            return entry.getData(new zip.Uint8ArrayWriter(), {rawPassword:entry.encrypted?rawPassword:undefined, onprogress: (current, total) =>clientID&&this.postMessage({clientID,current, total,filename:entry.filename,state:'progress'},source)}).catch(async e=>{
-                let msg = e.message;
-                if(password===false || !clientID)return;
-                if(msg == zip.ERR_INVALID_PASSWORD||msg==zip.ERR_ENCRYPTED){
-                    password = await this.getMessage({clientID,state:'password',password,isUTF8:entry.filenameUTF8},source);
-                    if(password){
-                        return await getData(entry);
-                    }else{
-                        password = false;
-                    }
-                }
-            });
-        }
-        if(ReaderList){
-            for await(let entry of ReaderList){
-                if(entry.directory)continue;
-                let data = await getData(entry);
-                if(data){
-                    if(!contents)contents={};
-                    contents[entry.filename] = data;
-                }
-            }
-        }
-        password = null;
-        result = null;
-        ReaderList = null;
-        return contents||false;
     }
     async getMessage(ARG,source){
         const T = this;
@@ -314,6 +274,7 @@ const T = new class {
                     }).join(',');
                     this.run(`CREATE TABLE \`${entry[0]}\` (${str});`);
                 });
+                return this.save();
                 if(!1&&this.T.isLocal){
                     let response = await fetch('/assets/source.zip').catch(e=>null);
                     if(response){
@@ -771,20 +732,18 @@ Object.entries({
                         T.SW = source;
                         break;
                     }
-                    case 'upload':{
-                        let cache = await T.openCache();
-                        let db = await T.readSQL(cache);
-                        await Promise.all(Array.from(result,async file=>{
-                            let data = await T.unzip(file,db.password);
-                            if(data)return await db.writeByData(data,cache);
-                            data = null;
-                        }));
-                        db.toFree();
-                        source.postMessage({
-                            method:'notice',
-                            result:'插入数据已更新',
-                            reload:!0
-                        });
+                    case 'add-data':{
+                        if(result){
+                            let cache = await T.openCache();
+                            let db = await T.readSQL(cache);
+                            await db.writeByData(result,cache);
+                            db.toFree();
+                            source.postMessage({
+                                method:'notice',
+                                result:'插入数据已更新',
+                                reload:!0
+                            });
+                        }
                         break;
                     }
                     case 'clear':{
