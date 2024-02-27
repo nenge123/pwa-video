@@ -36,7 +36,6 @@ importScripts(
     '/assets/js/lib/zip.min.js?'+version,
     '/assets/js/lib/sql.min.js?'+version,
     '/assets/js/lib/ejs.min.js?'+version,
-
 );
 const T = new class {
     async openCache(name){
@@ -712,7 +711,9 @@ Object.entries({
         let url = T.toPath(request);
         if(url.charAt(0)==='/'){
             url = T.toLink(url);
-            if(url.indexOf('/assets')===0){
+            if(url === CACHE_SQL_PATH){
+                return event.respondWith(T.toStatus(404));
+            }else if(url.indexOf('/assets')===0){
                 if(T.isLocal) return false;
                 return event.respondWith(T.LoaclCache(request));
             }else if(url.indexOf('/upload/data/')===0){
@@ -795,6 +796,12 @@ Object.entries({
                         source.postMessage({
                             method:'notice',
                             result:'数据已删除'
+                        });
+                    }
+                    case 'checkurl':{
+                        source.postMessage({
+                            method:'log',
+                            result:T.getParams(data.result).get('router')
                         });
                     }
                 }

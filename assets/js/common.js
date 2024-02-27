@@ -47,6 +47,11 @@
                                 dialogElm.querySelector('.content').innerHTML = data.result||'更新成功';
                                 dialogElm.showPopover();
                             }
+                            case 'log':{
+                                let dialogElm = document.querySelector('#pwa-notice');
+                                dialogElm.querySelector('.content').innerHTML = data.result||'更新成功';
+                                dialogElm.showPopover();
+                            }
                         }
                     }
                 }
