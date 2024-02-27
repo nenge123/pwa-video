@@ -3,7 +3,7 @@ layout: default
 ---
 <main id="page">
     <div id="top-info" class="warning-text">
-        <form method="get" action="/INDEX/" class="search" id="page-search">
+        <form method="get" action="/" class="search" id="page-search">
             <label>
                 <input type="text" name="search" value="<%- search -%>" placeholder="标题关键字">
                 <button>搜索</button>
@@ -12,7 +12,7 @@ layout: default
         <div class="more">此页是虚拟页面<button id="btn-update-cache" type="button">缓存管理</button></div>
     </div>
     <div id="page-result">
-        <nav id="site-nav"><span>当前位置:</span><a href="/INDEX/1/">首页</a><% for(let nav of topnav){ %> / <a href="#"><%- nav %></a><% } %></nav>
+        <nav id="site-nav"><span>当前位置:</span><a href="/">首页</a><% for(let nav of topnav){ %> / <a href="#"><%- nav %></a><% } %></nav>
         <% if(typeof m3u8 != 'undefined'&&m3u8.length){ %>
             <div class="player-content">
                 <img src="<%- imgsrc %>">

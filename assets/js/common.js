@@ -347,6 +347,12 @@
                     document.querySelector('#btn-update-cache').addEventListener('click',function(){
                         T.showWin('#admin-act')
                     });
+                    document.documentElement.addEventListener('gesturestart',function(e){
+                        e.preventDefault();
+                    });
+                    document.documentElement.addEventListener('touchstart',function(e){
+                        e.preventDefault();
+                    });
                 }
             });
         }

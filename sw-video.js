@@ -152,8 +152,45 @@ const T = new class {
     action = {};
     getParams(url){
         console.log(url);
-        let pathname = this.toPath(url.toLowerCase()).split('?');
+        let pathname = url.replace(CACHE_ORIGIN,'').toLowerCase();
+        if(!pathname||pathname=='/')pathname = '/?/';
         let params = new Map();
+        let i = 1;
+        if(pathname.charAt(1)==='?'){
+            if(pathname.charAt(2)==='/'){
+                pathname = pathname.slice(3);
+                params.set('router','index');
+                params.set('page',1);
+                params.set('order','desc');
+                for(let key of pathname.split('/')){
+                    params.set(i++,decodeURI(key));
+                }
+                params.set('page',params.get(1)||1);
+                params.set('order',params.get(2)||'desc');
+                params.set('tag',decodeURI(params.get(3)||''));
+                params.set('search',decodeURI(params.get(4)||''));
+            }else if(pathname.indexOf('search=')!==-1){
+                params.set('router','index');
+                params.set('page',1);
+                params.set('order','desc');
+                for(let key of pathname.split('?')[1].split('&')){
+                    let entry = key.split('=');
+                    params.set(entry[0],decodeURI(entry[1]));
+                }
+                return params;
+            }else{
+                pathname = pathname.slice(2);
+                for(let key of pathname.split('/')){
+                    params.set(i++,decodeURI(key));
+                }
+                if(!isNaN(params.get(1))){
+                    params.set('router','play');
+                    params.set('id',parseInt(params.get(1)));
+                    if(params.get(2))params.set('eq',params.get(2));
+                }
+            }
+        }
+        return params;
         let str = pathname[0].split('#')[0];
         if(pathname[1]){
             for(let entry of pathname[1].split('&')){
@@ -510,6 +547,7 @@ const T = new class {
         let templates = {
             title:'首页',
             search:'',
+            tagname:'',
             list:[],
             topnav:[],
             navpage:[],
@@ -521,15 +559,17 @@ const T = new class {
         if(db){
             response = await this.getTemplate('/assets/template-home.html',cache);
             let where = {};
-            let tag = params.get('tag');
-            let search = params.get('search');
+            let tag = params.get('tag')||'';
+            let search = params.get('search')||'';
             let order = params.get('order');
-            let page = parseInt(params.get('id') || 1);
+            let page = params.get('page');
             if(!page)page = 1;
+            page = parseInt(page);
             let ordertext = '';
             if(tag){
                 where['type'] = `%${tag}%`;
                 templates.topnav.push(tag);
+                templates.tagname = tag;
             }
             if(search){
                 where['title'] = `%${search}%`;
@@ -537,8 +577,7 @@ const T = new class {
                 templates['search'] = search;
             }
             if(order){
-                ordertext = order=='asc'?' `id` DESC ':' `id` ASC';
-                order = order.toUpperCase()+'/';
+                ordertext = order=='asc'?' `id` desc ':' `id` asc';
             }
             let limit = 30;
             let maxnum = db.count('data',where,!0);
@@ -553,7 +592,7 @@ const T = new class {
                         let imgext = img ? img.split('.').pop():'jpg';
                         let img2 = '/upload/data/'+itemid+'.'+imgext;
                         templates.list.push({
-                            url:`/PLAY/${items['id']}/`,
+                            url:`/?${items['id']}/`,
                             img:await UploadCache.match(img2)?img2:img,
                             name:items['title']
                         });
@@ -564,31 +603,28 @@ const T = new class {
                 let maxlengh = 8;
                 let leftnavs = [];
                 let rightnavs = [];
-                let urlmap = new Map();
-                if(tag)urlmap.set('tag',tag);
-                if(search)urlmap.set('search',search);
-                let urlsearch = '';
-                for(let a of urlsearch)urlsearch += a[0]+'='+encodeURI(a[1])+'&';
-                if(urlsearch)urlsearch = '?'+urlsearch.slice(0,-1);
-                leftnavs.push(['第一页',`/INDEX/1/${order}${urlsearch}`,page==1]);
+                let endstr = `/${order.toUpperCase()}/${encodeURI(tag)}/${encodeURI(search)}/`;
+                endstr = endstr.replace(/[\/]+$/,'/');
+
                 for(let i=0;i<=8;i++){
                     if(i==0||page+i<maxpage){
                         if(page+i==maxpage||page+i==1){
                             continue;
                         }
                         let num = page+i;
-                        rightnavs.push([num,`/INDEX/${num}/${order}${urlsearch}`,i==0]);
+                        rightnavs.push([num,`/?/${num}${endstr}`,i==0]);
                         maxlengh--;
                     }
                     if (maxlengh < 0) break;
                     if(i>0&&page-i>1){
                         let num = page-i;
-                        rightnavs.push([num,`/INDEX/${num}/${order}${urlsearch}`]);
+                        leftnavs.unshift([num,`/?/${num}${endstr}`]);
                         maxlengh--;
                     }
                     if (maxlengh < 0) break;
                 }
-                rightnavs.push(['最后一页',`/INDEX/${maxpage}/${order}${urlsearch}`,page==maxpage]);
+                leftnavs.unshift(['第一页',`/?/1${endstr}`,page==1]);
+                rightnavs.push(['最后一页',`/?/${maxpage}${endstr}`,page==maxpage]);
                 let tags = db.query('type',null,' `num` desc');
                 this.toArray(tags,entry=>{
                     templates.navtags.push([entry['name'],entry['num']]);
@@ -696,10 +732,6 @@ Object.entries({
                 }
                 let params = T.getParams(request.url);
                 switch(params.get('router')){
-                    case 'type':
-                        params.set('tag',params.get(1));
-                        params.set('id',params.get(2));
-                    case '':
                     case 'index':{
                         return event.respondWith(T.fetchByIndex(params));
                         break;
