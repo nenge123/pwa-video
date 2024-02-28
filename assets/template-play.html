@@ -9,7 +9,13 @@ layout: default
                 <button>搜索</button>
             </label>
         </form>
-        <div class="more">此页是虚拟页面<button id="btn-update-cache" type="button">缓存管理</button></div>
+        <div class="more">
+            此页是虚拟页面
+            <button id="btn-update-cache" type="button">缓存管理</button>
+            <% if(typeof id !=='undefined'){ %>
+                <button type="button" onclick="T.postMessage({method:'delete-data',result:'<%- id %>'});">删除此视频记录</button>
+            <% } %>
+        </div>
     </div>
     <div id="page-result">
         <nav id="site-nav"><span>当前位置:</span><a href="/">首页</a><% for(let nav of topnav){ %> / <a href="#"><%- nav %></a><% } %></nav>
@@ -21,9 +27,9 @@ layout: default
                     <% var bindex=1;for(let url of m3u8) { %>
                         <button data-url="<%- url %>" onclick="T.toPlay(this);">播放第<%- bindex++ %>集</button>
                     <% } %>
-                    <h3>下载</h3>
+                    <h3>下载(IOS可能异常)</h3>
                     <% var dindex=1;for(let url of m3u8) { %>
-                        <button data-url="<%- url %>"  data-name="<%- title %>" onclick="T.downloadTS(this);">下载第<%- dindex++ %>集</button>
+                        <button data-url="<%- url %>"  data-name="<%- title %>" onclick="T.downloadTS(this).catch(e=>alert(e.message));">下载第<%- dindex++ %>集</button>
                     <% } %>
                 </div>
             </div>

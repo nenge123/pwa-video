@@ -57,18 +57,16 @@
       <div class="content">
         <ul>
           <li>
-            <button onclick="T.upload();">上传数据</button>
-            <p>上传后请等待数据处理,直到信息返回!</p>
+            <button onclick="T.upload();">上传特制数据</button>
+            <p>上传后请等待数据处理,直到信息返回!内含JSON的ZIP压缩包<br>数据格式['id(primary唯一)','type','title','url','img']</p>
           </li>
           <li>
             <button onclick="T.postMessage({method:'clear',result:'-CROSS-IMAGES'});">清空TS视频缓存</button>
             <p>所有播放的缓存再次播放不消耗缓存,同时会占用大量储存,储存不足可以考虑删除</p>
           </li>
           <li>
-            <button onclick="T.postMessage({method:'clear',result:'-CROSS-TS'});">清空图片缓存</button>
-          </li>
-          <li>
-            <button onclick="T.postMessage({method:'clear',result:'-CROSS-M3U8'});">清空远程视频地址缓存</button>
+            <button onclick="T.postMessage({method:'clear',result:'-CROSS-TS'});">清空远程图片缓存</button>
+            <p>清楚后,在线访问会重新缓存</p>
           </li>
           <li>
             <button onclick="T.postMessage({method:'clear',result:'-CROSS-DATA'});">清空本地视频数据</button>
@@ -79,12 +77,19 @@
             <p>一旦清空,当前数据记录全部丧失</p>
           </li>
           <li>
-            <button onclick="T.update();">刷新Worker</button>
+            <button onclick="T.update();">刷新PWA</button>
             <p>一旦清空,当前数据记录全部丧失</p>
+          </li>
+          <li>
+            <h3>数据库处理</h3>
+            <button onclick="T.export()">导出文件</button>
+            <button onclick="T.import()">导入文件(覆盖)</button>
+            <p>此功能是直接处理数据库本身(SQLite文件)<br>因此可以直接分享你的影片库给你的朋友!</p>
           </li>
         </ul>
         <div>
           <h3>数据网盘</h3>
+          <img src="/assets/img/zan.jpg"><br>
           链接: <a href='https://pan.baidu.com/s/1RUXrdlYs9HCNULxT0KSakw'>https://pan.baidu.com/s/1RUXrdlYs9HCNULxT0KSakw</a> 提取码: 0000 复制这段内容后打开百度网盘手机App，操作更方便哦
         </div>
       </div>

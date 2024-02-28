@@ -105,12 +105,12 @@
             })
         }
         async FetchData(url,type,progress){
-            let response = await fetch(url);
+            let response = await fetch(url).catch(e=>false);
             if(progress){
                 const reader = response.body.getReader();
                 const chunks = [];
                 const fullsize = parseInt(response.headers.get('content-length')||0);
-                const filetype = response.headers.get('content-type')||'application/octet-stream';
+                //const filetype = response.headers.get('content-type')||'application/octet-stream';
                 let chunkSize = 0;
                 while (true) {
                     const {done,value} = await reader.read();
@@ -120,31 +120,14 @@
                     chunkSize += value.byteLength;
                     progress(chunkSize,fullsize,value.byteLength);
                 }
-                response = new Blob(chunks,{type:filetype});
+                return new Uint8Array(await (new Blob(chunks)).arrayBuffer());
+                //response = new Blob(chunks,{type:filetype});
             }
             if(response){
-                switch(type){
-                    case 'text':{
-                        return await response.text();
-                    }
-                    case 'json':{
-                        if(response instanceof Blob){
-                            let text = await response.text();
-                            return JSON.parse(text);
-                        }
-                        return await response.json();
-                    }
-                    case 'blob':{
-                        if(response instanceof Blob){
-                            return response;
-                        }
-                        return await response.blob();
-                    }
-                    case 'u8':
-                    default:{
-                        return new Uint8Array(await response.arrayBuffer());
-                    }
-                }
+                if(type=='text')return await response.text();
+                if(type=='json')return await response.json();
+                if(type=='blob')return await response.blob();
+                return new Uint8Array(await response.arrayBuffer());
             }
         }
         async toPlay(elm){
@@ -181,22 +164,21 @@
                 elm.innerHTML=str;
             };
             let url = elm.getAttribute('data-url');
-            console.log(url);
             const list = [];
             if(!self.m3u8parser){
                 showinfo('正在下载流程脚本');
                 await this.addJS('/assets/js/lib/m3u8-parser.js');
                 await this.addJS('/assets/js/lib/aes-decryptor.js');
             }
-            if(url.charAt(0)!=='/')this.readPath(url);
             showinfo('解析文件中');
-            let text = await this.FetchData(url,'text');
+            let text = await this.FetchData(this.readPath(url),'text');
             if(!text) return showinfo('解析失败');;
             let parser = new m3u8parser(text);
             if (!parser.manifest.segments.length) {
                 for(let item of parser.manifest.playlists){
                     //if (item.attributes) Object.assign(ATTR, item.attributes);
-                    let nextParser = new m3u8parser(await this.FetchData(this.getPath(item.uri), 'text'));
+                    let uri1 = this.getPath(item.uri);
+                    let nextParser = new m3u8parser(await this.FetchData(uri1, 'text'));
                     if (nextParser.manifest.segments.length) {
                         list.push(...nextParser.manifest.segments.map(v => {
                             v.uri = this.getPath(v.uri);
@@ -227,7 +209,7 @@
             let chunks = [];
             showinfo('解析完毕,进行下载');
             for(let frag of list){
-                let databuf = await this.FetchData(frag.uri,'u8',(loadsize,fullsize,chunksize)=>{
+                let databuf = await this.FetchData(frag.uri,null,(loadsize,fullsize,chunksize)=>{
                     let sd = '当前速率'+(chunksize/1024).toFixed(0)+'KB';
                     let cp = fullsize>0?',当前进度'+(loadsize*100/fullsize).toFixed(2)+'%':'';
                     showinfo('下载中:'+(index+1)+'/'+list.length+sd+cp);
@@ -276,11 +258,12 @@
             this.origin = urlInfo.origin;
     
         }
-        getPath(str, bool) {
-            if (this.origin&&str.charAt(0) == '/' && str.charAt(1) != '/') {
-                str = this.origin+str;
-            } else if (str.indexOf('http') === 0 && bool) {
+        getPath(str) {
+            if (str.indexOf('http') === 0 || str.indexOf('//') === 0) {
+                if(str.indexOf('//') === 0)str = 'https:'+str;
                 this.readPath(str);
+            }else if(str.charAt(0)==='/'){
+                str = (this.origin||location.origin)+str; 
             }
             return str;
         }
@@ -326,12 +309,12 @@
             ReaderList = null;
             return contents||false;
         }
-        async upload(){
+        async upload(fn){
             let T = this;
             let upload = document.createElement('input');
             upload.type = 'file';
             upload.addEventListener('change',function(){
-                Array.from(this.files,async file=>{
+                Array.from(this.files,fn instanceof Function?fn:async file=>{
                     T.postMessage({
                         method:'add-data',
                         result:await T.unzip(file,'IAM18')
@@ -354,6 +337,58 @@
                         e.preventDefault();
                     });
                 }
+            });
+        }
+        getResult(method,result){
+            return new Promise(back=>{
+                let clientID = Date.now()+''+Math.random();
+                this.action[clientID] = function(data){
+                    back(data.result);
+                    delete self.T.action[data.clientID];
+                }
+                this.postMessage({
+                    method,
+                    clientID,
+                    result
+                });
+            });
+        }
+        async export(){
+            let CACHE_NAME = await this.getResult('cachename');
+            let sqlname = await this.getResult('sqlname');
+            let cache = await caches.open(CACHE_NAME);
+            let response = await cache.match(sqlname);
+            if(response){
+                let url = URL.createObjectURL(await response.blob());
+                this.download(url,sqlname.split('/').pop());
+            }else{
+                let dialogElm = this.showWin('#pwa-notice');
+                dialogElm.querySelector('.content').innerHTML = '没找到数据';
+            }
+
+
+        }
+        async import(){
+            this.upload(async file=>{
+                if(file&&file instanceof Blob){
+                    let response = new Response(file,{
+                        headers:{
+                            'content-lengh':file.size
+                        }
+                    });
+                    let CACHE_NAME = await this.getResult('cachename');
+                    let sqlname = await this.getResult('sqlname');
+                    let cache = await caches.open(CACHE_NAME);
+                    await cache.put(sqlname,response);
+                    let dialogElm = this.showWin('#pwa-notice');
+                    dialogElm.querySelector('.content').innerHTML = '导入成功';
+                    clearTimeout(this.timer);
+                    this.timer = setTimeout(
+                        ()=>location.reload(),
+                        1000
+                    );
+                }
+
             });
         }
     }

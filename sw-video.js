@@ -27,15 +27,11 @@
 "use strict";
 const CACHE_NAME = 'N-VIDEO';
 const CACHE_SQL_PATH = '/assets/sql.dat';
-const version = Date.parse('Tue, 27 Feb 2024 14:31:11 GMT');
+const version = Date.parse('Wed, 28 Feb 2024 01:20:17 GMT');
 const CACHE_ORIGIN = location.origin;
 //https://unpkg.com/ejs@3.1.9/ejs.min.js
 //https://unpkg.com/sql.js@1.10.2/dist/sql-wasm.js
 //https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js
-importScripts(
-    'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js',//'/assets/js/lib/sql.min.js?'+version,
-    'https://unpkg.com/ejs@3.1.9/ejs.min.js',//'/assets/js/lib/ejs.min.js?'+version,
-);
 const T = new class {
     async openCache(name){
         let name2 = name?CACHE_NAME+name:CACHE_NAME;
@@ -285,7 +281,6 @@ const T = new class {
                     'data':'char'
                 }
             },
-            password:'IAM18',
             async save(cache){
                 if(!cache)cache = await this.T.openCache();
                 let data = this.export();
@@ -321,7 +316,6 @@ const T = new class {
                     if(response){
                         let data = await this.T.unzip(
                             await response.blob(),
-                            this.password
                         );
                         await this.writeByData(data,cache);
                         data = null;
@@ -658,6 +652,7 @@ const T = new class {
             topnav:['影片不存在'],
             m3u8:[],
             imgsrc:'',
+            id:0,
             error:'未能找到符合条件影片,请返回首页重试!',
         };
         if(db){
@@ -667,6 +662,7 @@ const T = new class {
             if(!isNaN(id)){
                 itemdata = db.query('data',{id},!1,1);
                 if(itemdata){
+                    itemdata['id'] = parseInt(itemdata['id']);
                     let UploadCache = await this.openCache('-UPLOAD-DATA');
                     let img = itemdata['img'];
                     let imgext = img ? img.split('.').pop():'jpg';
@@ -686,6 +682,7 @@ const T = new class {
                             topnav:[itemdata['title']],
                             imgsrc,
                             m3u8,
+                            id:itemdata['id']
                         });
                     }
                 }
@@ -700,6 +697,10 @@ const T = new class {
         return new Response(new Blob([response],{type:'text/html;charset=utf-8'}));
     }
 };
+importScripts(
+    T.isLocal?'/assets/js/lib/sql.min.js':'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js',
+    T.isLocal?'/assets/js/lib/ejs.min.js':'https://unpkg.com/ejs@3.1.9/ejs.min.js',
+);
 Object.entries({
     install(event) {
         console.log('serviceWorker install');
@@ -752,10 +753,7 @@ Object.entries({
             if(/\.(jpg|gif|webp|png)$/ig.test(url)){
                 return event.respondWith(T.CdnCache(request,'-CROSS-IMAGES'));
             }
-            if(/\.m3u8$/ig.test(url)){
-                return event.respondWith(T.CdnCache(request,'-CROSS-M3U8'));
-            }
-            if(/\.ts$/ig.test(url)){
+            if(/\.(ts|key|m3u8)$/ig.test(url)){
                 return event.respondWith(T.CdnCache(request,'-CROSS-TS'));
             }
         }
@@ -795,7 +793,6 @@ Object.entries({
                         break;
                     }
                     case 'clear':{
-                        console.log(method,result);
                         if(result===undefined&&typeof result !=='string')return ;
                         await caches.delete(CACHE_NAME+result);
                         source.postMessage({
@@ -810,6 +807,36 @@ Object.entries({
                             result:T.getParams(result).get('router')
                         });
                         break;
+                    }
+                    case 'delete-data':{
+                        if(result){
+                            let cache = await T.openCache();
+                            let db = await T.readSQL(cache);
+                            let sql3 = this.getDelete('data',['id']);
+                            db.run(sql3,[result]);
+                            db.save(cache);
+                            db.toFree();
+                            source.postMessage({
+                                method:'notice',
+                                result:'此视频数据已删除,请自行返回首页!',
+                            });
+                        }
+                    }
+                    case 'cachename':{
+                        if(clientID){
+                            return source.postMessage({
+                                result:CACHE_NAME,
+                                clientID
+                            });
+                        }
+                    }
+                    case 'sqlname':{
+                        if(clientID){
+                            return source.postMessage({
+                                result:CACHE_SQL_PATH,
+                                clientID
+                            });
+                        }
                     }
                 }
                 result = null;
