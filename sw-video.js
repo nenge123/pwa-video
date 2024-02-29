@@ -3,26 +3,23 @@
  * @copyright Nenge.net
  * @license GPL
  * @link https://nenge.net
- * 本功能构建一个虚拟响应服务,利用SQLite作为驱动
+ * 本功能构建一个虚拟响应服务,利用SQLite作为驱动进行交互
  * 简单路由功能
  *      let params = T.getParams(request.url)
- *      检测类似 /index-1.html 或者 /INDEX/1/
- *      switch(params.get('router')){
- *          //分配响应页面
- *      }
- * 数据库查询
+ * 数据库操作 SQLite.js
  *       let db = await T.readSQL();//打开数据库
- *       if(!db)return T.toLocation('/install/');//没有数据库 切换安装页面,当然也可以不切换而是内部处理后.
+ *       db.save();储存数据
  *       db.toFree();//查询结束关闭数据库
+ *       注:IOS存在问题,不要尝试使用update,应该先删除数据,再添加
  * 简单模板调用并且
- *       let response = await T.getTemplate('/assets/template-index.html');
- *       response = response.replace();
- *       return new Response(new Blob([response],{type:'text/html;charset=utf-8'}));
- *
- * 数据解压
- *      T.unzip(Blob);
- * 
- * 如果导入数据存在图片或者地址,会缓存到 '-UPLOAD-DATA',其中文件明明必须是 数据ID+文件扩展名
+ *      let response = await T.getTemplate('/assets/template-index.html');
+ *      response =  ejs.compile(response)(templates); //ejs.js模板
+ *      ejs.clearCache();
+ *      return new Response(new Blob([response],{type:'text/html;charset=utf-8'}));
+ * 数据缓存
+ *      '-UPLOAD-DATA' 储存本地地址以及图片数据
+ *      '-CROSS-IMAGES' 储存远程图片数据
+ *      '-CROSS-TS' 储存远程视频ts m3u8 key等数据
  */
 "use strict";
 const CACHE_NAME = 'N-VIDEO';
@@ -45,9 +42,9 @@ const T = new class {
         if(response&&navigator.onLine){
             let cachetime = response.headers.get('date');
             if(cachetime<version){
-                let response2 = await fetch(request).catch(e=>false);
+                let response2 = await fetch(request).catch(e=>undefined);
                 if(response2){
-                    cache.put(url,response.clone());
+                    cache.put(request,response.clone());
                     return response2;
                 }
             }
@@ -67,7 +64,7 @@ const T = new class {
             let cachetime = (await cache.match(request)).headers.get('last-modified');
             if(modified!=cachetime){
                 size ++;
-                await cache.put(request.url,(await fetch(request.url)).clone());
+                await cache.put(request,(await fetch(request.url)).clone());
             }
         }));
 
@@ -76,7 +73,7 @@ const T = new class {
         let cache = await this.openCache(NAME);
         let response = await cache.match(request);
         if(!response){
-            response = await fetch(request).catch(e=>false);
+            response = await fetch(request).catch(e=>undefined);
             if(response){
                 cache.put(request,response.clone());
             }else{
@@ -151,7 +148,6 @@ const T = new class {
     }
     action = {};
     getParams(url){
-        console.log(url);
         let pathname = url.replace(CACHE_ORIGIN,'').toLowerCase();
         if(!pathname||pathname=='/')pathname = '/?/';
         let params = new Map();
@@ -293,7 +289,8 @@ const T = new class {
                         ),
                         {
                             headers:{
-                                'content-length':data.byteLength
+                                'content-length':data.byteLength,
+                                'date':new Date().toGMTString()
                             }
 
                         }
@@ -311,63 +308,40 @@ const T = new class {
                     this.run(`CREATE TABLE \`${entry[0]}\` (${str});`);
                 });
                 return this.save();
-                if(!1&&this.T.isLocal){
-                    let response = await fetch('/assets/source.zip').catch(e=>null);
-                    if(response){
-                        let data = await this.T.unzip(
-                            await response.blob(),
-                        );
-                        await this.writeByData(data,cache);
-                        data = null;
-                    }
-                }else{
-                    this.save();
-                }
             },
             /**
              * 写入主数据
              * @param {*} data 
              */
-            async writeByData(data,cache){
+            async zip2Data(data,cache,isadd){
                 if(!cache)cache = await this.T.openCache();
                 let UploadCache = await this.T.openCache('-UPLOAD-DATA');
-                let keys = Object.keys(this.columns['data']);
-                let sql = this.getInsert('data',this.getFill(keys),this.getFill(keys,'?'));
-                let sql2 = this.getSelect('data','`id`',['id']);
-                let sql3 = this.getDelete('data',['id']);
+                let [checksql,delsql,insertsql,keys] = this.sql_text_by_data();
                 this.T.toArray(data,entry=>{
                     if(/\.json$/.test(entry[0])){
-                        let sqldata = (new Function('return '+new TextDecoder().decode(entry[1])))();
-                        if(sqldata&&sqldata.constructor === Array){
-                            for(let items of sqldata){
-                                let id = items['id'];
-                                if(this.fetchResult(sql2,[id])){
-                                    this.run(sql3,[id]);
-                                }
-                                this.run(sql,this.getFillData(keys,!1,items));
-                                if(items['type']){
-                                    this.writeByType(items['type']);
-                                }
-                            }
-                        }else if(sqldata&&sqldata.constructor === Object){
-                            for(let id in sqldata){
-                                let items = sqldata[id];
-                                if(this.fetchResult(sql2,[id])){
-                                    this.run(sql3,[id]);
-                                }
-                                this.run(sql,this.getFillData(keys,!1,items));
-                                this.writeByType(items['type']);
-                            }
+                        try{
+                            let text = new TextDecoder().decode(entry[1]);
+                            let sqldata = JSON?JSON.parse(text):(new Function('return '+text))();
+                            this.json2Data(sqldata,checksql,delsql,insertsql,keys,isadd);
+                        }catch(e){
+                            this.T.postMessage({
+                                method:'notice',
+                                result:e&&e.message||e,
+                            });
+                            throw 'zip data error';
                         }
                     }else{
                         let mime = entry[0].split('.').pop();
+                        let filetype = /m3u8$/.test(mime)?'application/vnd.apple.mpegURL':/(jpg|png|gif|webp)$/i.test(mime)?'image/'+mime:'application/octet-stream';
                         UploadCache.put(
                             '/upload/data/'+entry[0],
                             new Response(
                                 new Blob(
                                     [entry[1]],
                                     {
-                                        type:/(jpg|png|gif|webp)$/i.test(mime)?'image/'+mime:'application/octet-stream'
+                                        type:filetype,
+                                        'date':new Date().toGMTString(),
+                                        'content-length':entry[1].byteLength
                                     }
                                 )
                             )
@@ -376,17 +350,77 @@ const T = new class {
                 });
                 await this.save(cache);
             },
+            sql_text_by_data(){
+                let keys = Object.keys(this.columns['data']);
+                let insertsql = this.getInsert('data',this.getFill(keys),this.getFill(keys,'?'));
+                let checksql = this.getSelect('data','`id`',['id']);
+                let delsql = this.getDelete('data',['id']);
+                return [checksql,delsql,insertsql,keys];
+            },
+            /**
+             * 
+             * @param {Object} jsondata 要插入的数据
+             * @param {String} checksql 
+             * @param {String} delsql 
+             * @param {String} insertsql 
+             * @param {String} isadd 是否追加
+             */
+            json2Data(jsondata,checksql,delsql,insertsql,keys,isadd){
+                if(!checksql){
+                    let sql = this.sql_text_by_data();
+                    checksql = sql[0];
+                    delsql = sql[1];
+                    insertsql = sql[2];
+                    keys = sql[3];
+                }
+                if(jsondata&&jsondata.constructor === Array){
+                    for(let items of jsondata){
+                        if(isadd)items['id'] = null;
+                        this.json2Insert(items,checksql,delsql,insertsql,keys);
+                    }
+                }else if(jsondata&&jsondata.constructor === Object){
+                    for(let id in jsondata){
+                        let items = jsondata[id];
+                        if(isadd){
+                            items['id'] = null;
+                        }else if(!items['id']&&!isNaN(id)){
+                            items['id'] = parseInt(id);
+                        }
+                        this.json2Insert(items,checksql,delsql,insertsql,keys);
+                    }
+                }
+            },
+            /**
+             * 更新数据库
+             * @param {JSON} items 更新的JSON值
+             * @param {String} checksql 
+             * @param {String} delsql 
+             * @param {String} insertsql 
+             */
+            json2Insert(items,checksql,delsql,insertsql,keys){
+                if(items['id']){
+                    if(this.fetchResult(checksql,[items['id']])){
+                        this.run(delsql,[items['id']]);
+                    }
+                    this.run(insertsql,this.getFillData(keys,!1,items));
+                }else{
+                    let id = this.query('data',null,null,!1,0,'max(id)');
+                    items['id'] = id + 1;
+                    this.run(insertsql,this.getFillData(keys,!1,items));
+                    
+                }
+                this.json2type(items['type']);
+            },
             /**
              * 写入分类
              * @param {*} data 
              */
-            writeByType(data){
+            json2type(data){
                 data.split(',').forEach(name => {
                     if (name) {
-                        let typedata = this.query('type',{name},null,1);
-                        if(typedata){
-                            let num = (parseInt(typedata['num'])||1)+1;
-                            this.update('type',{num},{name});
+                        let num = this.query('type',{name},null,!1,null,'`num`');
+                        if(num&&num>0){
+                            this.update('type',{num:num+1},{name});
                         }else{
                             this.insert('type',{name,num:1});
                         }
@@ -501,18 +535,6 @@ const T = new class {
             },
             count(table,where,like){
                 return this.query(table,where,null,!1,like,!0);
-            },
-            reInsert(table,params,key){
-                let where;
-                if(key){
-                    where = {
-                        [key]:params[key]
-                    }
-                }
-                if(this.query(table,where,1)){
-                    return this.update(table,params,where);
-                }
-                return this.insert(table,params);
             }
 
         });
@@ -575,7 +597,7 @@ const T = new class {
                 templates['search'] = search;
             }
             if(order){
-                ordertext = order=='asc'?' `id` desc ':' `id` asc';
+                ordertext = order=='asc'?' `id` asc':' `id` desc ';
             }
             let limit = 30;
             let maxnum = db.count('data',where,!0);
@@ -778,15 +800,30 @@ Object.entries({
                         T.SW = source;
                         break;
                     }
-                    case 'add-data':{
+                    case 'add-zip':{
                         if(result){
                             let cache = await T.openCache();
                             let db = await T.readSQL(cache);
-                            await db.writeByData(result,cache);
+                            await db.zip2Data(result,cache,data.isadd);
                             db.toFree();
                             source.postMessage({
                                 method:'notice',
                                 result:'插入数据已更新',
+                                reload:!0
+                            });
+                        }
+                        break;
+                    }
+                    case 'add-json':{
+                        if(result){
+                            let cache = await T.openCache();
+                            let db = await T.readSQL(cache);
+                            db.json2Data(result,null,null,null,null,data.isadd);
+                            await db.save(cache);
+                            db.toFree();
+                            source.postMessage({
+                                method:'notice',
+                                result:'数据已更新或者追加',
                                 reload:!0
                             });
                         }
@@ -812,7 +849,7 @@ Object.entries({
                         if(result){
                             let cache = await T.openCache();
                             let db = await T.readSQL(cache);
-                            let sql3 = this.getDelete('data',['id']);
+                            let sql3 = db.getDelete('data',['id']);
                             db.run(sql3,[result]);
                             db.save(cache);
                             db.toFree();
@@ -821,6 +858,7 @@ Object.entries({
                                 result:'此视频数据已删除,请自行返回首页!',
                             });
                         }
+                        break;
                     }
                     case 'cachename':{
                         if(clientID){
@@ -829,6 +867,7 @@ Object.entries({
                                 clientID
                             });
                         }
+                        break;
                     }
                     case 'sqlname':{
                         if(clientID){
@@ -837,6 +876,20 @@ Object.entries({
                                 clientID
                             });
                         }
+                        break;
+                    }
+                    case 'query-data':{
+                        if(result&&clientID){
+                            let cache = await T.openCache();
+                            let db = await T.readSQL(cache);
+                            let data = db.query('data',{id:result},null,1);
+                            db.toFree();
+                            source.postMessage({
+                                clientID,
+                                result:data,
+                            });
+                        }
+                        break;
                     }
                 }
                 result = null;

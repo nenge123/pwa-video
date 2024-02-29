@@ -1101,4 +1101,9 @@ dialog.wbox {
             }
         }
     }
+    >.content{
+        button{
+            margin: 5px 2px;
+        }
+    }
 }

@@ -309,20 +309,77 @@
             ReaderList = null;
             return contents||false;
         }
-        async upload(fn){
+        async upload(fn,mime){
             let T = this;
             let upload = document.createElement('input');
             upload.type = 'file';
             upload.addEventListener('change',function(){
-                Array.from(this.files,fn instanceof Function?fn:async file=>{
-                    T.postMessage({
-                        method:'add-data',
-                        result:await T.unzip(file,'IAM18')
-                    });
-                });
+                if(fn instanceof Function){
+                    Array.from(this.files,fn);
+                }
                 this.remove();
             },{once:!0});
+            if(mime){
+                upload.accept = mime;
+            }
             upload.click();
+        }
+        async toClear(result){
+            return this.postMessage({method:'clear',result});
+        }
+        async toUpload(type,isadd,mime){
+            this.upload(async file=>{                
+                switch(type){
+                    case 'json':{
+                        let result = JSON.parse(await file.text());
+                        this.postMessage({
+                            method:'add-json',
+                            result,
+                            isadd
+                        });
+                        break;
+                    }
+                    case 'zip':{
+                        this.postMessage({
+                            method:'add-zip',
+                            result:await T.unzip(file,'IAM18'),
+                            isadd
+                        });
+                        break;
+                    }
+                    case 'import':{
+                        let response = new Response(file,{
+                            headers:{
+                                'content-lengh':file.size
+                            }
+                        });
+                        let CACHE_NAME = await this.getResult('cachename');
+                        let sqlname = await this.getResult('sqlname');
+                        let cache = await caches.open(CACHE_NAME);
+                        await cache.put(sqlname,response);
+                        let dialogElm = this.showWin('#pwa-notice');
+                        dialogElm.querySelector('.content').innerHTML = '导入成功';
+                        clearTimeout(this.timer);
+                        this.timer = setTimeout(
+                            ()=>location.reload(),
+                            1000
+                        );
+                        break;
+                    }
+                }
+            },mime);
+        }
+        async toDelete(id,elm){
+            if(elm)elm.remove();
+            return T.postMessage({method:'delete-data',result:id});
+        }
+        async toExportId(id){
+            let data = await this.getResult('query-data',id);
+            if(data&&data.constructor === Object){
+                data = JSON.stringify(data);
+                let url = URL.createObjectURL(new Blob([`[${data}]`],{type:'text/json'}));
+                this.download(url,document.title+'.json')
+            }
         }
         constructor(){
             document.addEventListener('readystatechange',function(){
@@ -365,31 +422,6 @@
                 let dialogElm = this.showWin('#pwa-notice');
                 dialogElm.querySelector('.content').innerHTML = '没找到数据';
             }
-
-
-        }
-        async import(){
-            this.upload(async file=>{
-                if(file&&file instanceof Blob){
-                    let response = new Response(file,{
-                        headers:{
-                            'content-lengh':file.size
-                        }
-                    });
-                    let CACHE_NAME = await this.getResult('cachename');
-                    let sqlname = await this.getResult('sqlname');
-                    let cache = await caches.open(CACHE_NAME);
-                    await cache.put(sqlname,response);
-                    let dialogElm = this.showWin('#pwa-notice');
-                    dialogElm.querySelector('.content').innerHTML = '导入成功';
-                    clearTimeout(this.timer);
-                    this.timer = setTimeout(
-                        ()=>location.reload(),
-                        1000
-                    );
-                }
-
-            });
         }
     }
     let sw = navigator.serviceWorker;
