@@ -104,10 +104,10 @@
                 document.body.appendChild(script);
             })
         }
-        async FetchData(url,type,progress){
+        async FetchData(url,istext,progress){
             let response = await fetch(url).catch(e=>false);
             let responseBuff;
-            if(response){
+            if(progress instanceof Function){
                 const reader = response.body.getReader();
                 const chunks = [];
                 const fullsize = parseInt(response.headers.get('content-length')||0);
@@ -119,17 +119,17 @@
                     /* 下载进度*/
                     chunks.push(value);
                     chunkSize += value.byteLength;
-                    progress instanceof Function&&progress(chunkSize,fullsize,value.byteLength);
+                    progress(chunkSize,fullsize,value.byteLength);
                 }
-                responseBuff =  new Uint8Array(await (new Blob(chunks)).arrayBuffer());
+                return new Uint8Array(await (new Blob(chunks)).arrayBuffer());
             }
-            if(responseBuff){
-                if(type=='text') return new TextDecoder().decode(responseBuff);
+            if(response){
+                if(istext) return await response.text();
                 //return await response.text();
                 //if(type=='json')return await response.json();
                 //if(type=='blob')return await response.blob();
-                return responseBuff;
-                //new Uint8Array(await response.arrayBuffer());
+                //return responseBuff;
+                return new Uint8Array(await response.arrayBuffer());
             }
         }
         async toPlay(elm){
@@ -175,15 +175,15 @@
             showinfo('解析文件中');
             url = this.getPath(url);
             console.log(url);;
-            let text = await this.FetchData(url,'text');
-            if(!text) return showinfo('解析失败'+url);;
-            let parser = new m3u8parser(text);
+            let m3u8Text = await this.FetchData(url,!0);
+            if(!m3u8Text) return showinfo('解析失败'+m3u8Text);;
+            let parser = new m3u8parser(m3u8Text);
             if (!parser.manifest.segments.length) {
                 showinfo('解析成功!分析索引');
                 for(let item of parser.manifest.playlists){
                     //if (item.attributes) Object.assign(ATTR, item.attributes);
-                    let uri1 = this.getPath(item.uri);
-                    let nextParser = new m3u8parser(await this.FetchData(uri1, 'text'));
+                    let m3u8Url = this.getPath(item.uri);
+                    let nextParser = new m3u8parser(await this.FetchData(m3u8Url, !0));
                     if (nextParser.manifest.segments.length) {
                         list.push(...nextParser.manifest.segments.map(v => {
                             v.uri = this.getPath(v.uri);
