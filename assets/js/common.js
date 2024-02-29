@@ -132,6 +132,26 @@
                 return new Uint8Array(await response.arrayBuffer());
             }
         }
+        async ajax(url,istext,progress){
+            return new Promise(back=>{
+                let request = new XMLHttpRequest;
+                request.addEventListener('readystatechange',function(event){
+                    if(request.readyState===request.DONE){
+                        if(request.response instanceof ArrayBuffer) return back(new Uint8Array(request.response));
+                        back(request.response);
+                    }
+                });
+                let speed = 0;
+                progress instanceof Function&&request.addEventListener('progress',function(e){
+                    if(!speed)speed = e.loaded;
+                    else speed = e.loaded - speed;
+                    progress(e.loaded, e.total,speed);
+                });
+                request.responseType = istext?'text':'arraybuffer';
+                request.open('GET',url);
+                request.send();
+            });
+        }
         async toPlay(elm){
             if(elm.disabled)return;
             elm.disabled = !0;
@@ -175,7 +195,7 @@
             showinfo('解析文件中');
             url = this.getPath(url);
             console.log(url);;
-            let m3u8Text = await this.FetchData(url,!0);
+            let m3u8Text = await this.ajax(url,!0);
             if(!m3u8Text) return showinfo('解析失败'+m3u8Text);;
             let parser = new m3u8parser(m3u8Text);
             if (!parser.manifest.segments.length) {
@@ -183,7 +203,7 @@
                 for(let item of parser.manifest.playlists){
                     //if (item.attributes) Object.assign(ATTR, item.attributes);
                     let m3u8Url = this.getPath(item.uri);
-                    let nextParser = new m3u8parser(await this.FetchData(m3u8Url, !0));
+                    let nextParser = new m3u8parser(await this.ajax(m3u8Url, !0));
                     if (nextParser.manifest.segments.length) {
                         list.push(...nextParser.manifest.segments.map(v => {
                             v.uri = this.getPath(v.uri);
@@ -215,7 +235,7 @@
             let chunks = [];
             showinfo('解析完毕,进行下载');
             for(let frag of list){
-                let databuf = await this.FetchData(frag.uri,null,(loadsize,fullsize,chunksize)=>{
+                let databuf = await this.ajax(frag.uri,null,(loadsize,fullsize,chunksize)=>{
                     let sd = '当前速率'+(chunksize/1024).toFixed(0)+'KB';
                     let cp = fullsize>0?',当前进度'+(loadsize*100/fullsize).toFixed(2)+'%':'';
                     showinfo('下载中:'+(index+1)+'/'+list.length+sd+cp);
@@ -225,7 +245,7 @@
                     if (frag.key) {
                         if (frag.key.href) {
                             if (!keyData[frag.key.href]) {
-                                let buf = await this.FetchData(frag.key.href);
+                                let buf = await this.ajax(frag.key.href);
                                 if(buf){
                                     keyData[frag.key.href] = buf.buffer;
                                 }else{
@@ -436,7 +456,7 @@
             }
         }
         async test3(){
-            let text = await T.FetchData('https://jkunbf.com/20240118/hrnHgN2Q/index.m3u8',!0);
+            let text = await T.ajax('https://jkunbf.com/20240118/hrnHgN2Q/index.m3u8',!0);
             let dialogElm = this.showWin('#pwa-notice');
             dialogElm.querySelector('.content').innerHTML = text;
 
