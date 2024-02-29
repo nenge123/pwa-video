@@ -106,7 +106,8 @@
         }
         async FetchData(url,type,progress){
             let response = await fetch(url).catch(e=>false);
-            if(progress){
+            let responseBuff;
+            if(response){
                 const reader = response.body.getReader();
                 const chunks = [];
                 const fullsize = parseInt(response.headers.get('content-length')||0);
@@ -120,14 +121,15 @@
                     chunkSize += value.byteLength;
                     progress(chunkSize,fullsize,value.byteLength);
                 }
-                return new Uint8Array(await (new Blob(chunks)).arrayBuffer());
-                //response = new Blob(chunks,{type:filetype});
+                responseBuff =  new Uint8Array(await (new Blob(chunks)).arrayBuffer());
             }
-            if(response){
-                if(type=='text')return await response.text();
-                if(type=='json')return await response.json();
-                if(type=='blob')return await response.blob();
-                return new Uint8Array(await response.arrayBuffer());
+            if(responseBuff){
+                if(type=='text') return new TextDecoder().decode(responseBuff);
+                //return await response.text();
+                //if(type=='json')return await response.json();
+                //if(type=='blob')return await response.blob();
+                return responseBuff;
+                //new Uint8Array(await response.arrayBuffer());
             }
         }
         async toPlay(elm){
@@ -171,8 +173,9 @@
                 await this.addJS('/assets/js/lib/aes-decryptor.js');
             }
             showinfo('解析文件中');
-            let text = await this.FetchData(this.readPath(url),'text');
-            if(!text) return showinfo('解析失败');;
+            url = this.readPath(url);
+            let text = await this.FetchData(url,'text');
+            if(!text) return showinfo('解析失败'+url);;
             let parser = new m3u8parser(text);
             if (!parser.manifest.segments.length) {
                 for(let item of parser.manifest.playlists){
