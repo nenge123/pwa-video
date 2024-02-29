@@ -24,7 +24,7 @@
 "use strict";
 const CACHE_NAME = 'N-VIDEO';
 const CACHE_SQL_PATH = '/assets/sql.dat';
-const version = Date.parse('Wed, 28 Feb 2024 01:20:17 GMT');
+const version = Date.parse('Thu Feb 29 2024 10:01:56 GMT+0800 (中国标准时间)');
 const CACHE_ORIGIN = location.origin;
 //https://unpkg.com/ejs@3.1.9/ejs.min.js
 //https://unpkg.com/sql.js@1.10.2/dist/sql-wasm.js
@@ -895,7 +895,8 @@ Object.entries({
                         let data = '';
                         let cache = await T.openCache();
                         for(let request of await cache.keys()){
-                            data += `<b>${T.toPath(request.url)}:</b>${(await cache.match(request)).headers.get('date')}`;
+                            let date = new Date(Date.parse((await cache.match(request)).headers.get('date'))).toLocaleString();
+                            data += `<b>${T.toPath(request.url)}:</b>${date}`;
                         }
                         source.postMessage({
                             method:'notice',
