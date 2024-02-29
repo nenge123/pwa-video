@@ -147,7 +147,7 @@
                     else speed = e.loaded - speed;
                     progress(e.loaded, e.total,speed);
                 });
-                request.responseType = istext?'text':'arraybuffer';
+                request.responseType = istext?istext=='json'?'json':'text':'arraybuffer';
                 request.open('GET',url);
                 request.send();
             });
@@ -455,6 +455,65 @@
                 let dialogElm = this.showWin('#pwa-notice');
                 dialogElm.querySelector('.content').innerHTML = '没找到数据';
             }
+        }
+        async caiji(){
+            let url = document.querySelector('#caiji-url').value;
+            let data = await this.ajax(url,'json');
+            if(data&&data.list){
+                let maxpage = data.pagecount;
+                let maxnum = data.total;
+                let dialogElm = this.showWin('#pwa-notice');
+                dialogElm.querySelector('.content').innerHTML = `找到数据${maxpage}页,${maxnum}条<div class="caiji-result"></div>`;
+                let caijiResut = dialogElm.querySelector('.caiji-result');
+                let datalist = [];
+                let result = '';
+                if(url.indexOf('pg=') ===-1){
+                    datalist = datalist.concat(this.caiji_readlist(data.list));
+                    for(let pg = 2;pg<3;pg++){
+                        let newdata = await this.ajax(url+'&pg='+pg,'json');
+                        let newlist = this.caiji_readlist(newdata.list);
+                        datalist = datalist.concat(newlist);
+                        caijiResut.innerHTML +=`<div>已采集${pg}页</div>`;
+                        this.showWin('#pwa-notice');
+                    }
+                }else{
+                    datalist = this.caiji_readlist(data.list);
+                    for(let item of datalist){
+                        result +=`<div>${item['type']}:${item['title']}</div>`;
+                    }
+                    caijiResut.innerHTML = result;
+                    this.showWin('#pwa-notice');
+                }
+                this.postMessage({
+                    method:'add-json',
+                    result:datalist,
+                    isadd:!1
+                });
+
+            }
+        }
+        caiji_readlist(list){
+            let newlist = [];
+            for(let data of list){
+                let items = {};
+                if(data.vod_id){
+                    items['id'] = data.vod_id;
+                }
+                if(data.type_name){
+                    items['type'] = data.type_name;
+                }
+                if(data.vod_name){
+                    items['title'] = data.vod_name;
+                }
+                if(data.vod_pic){
+                    items['img'] = data.vod_pic;
+                }
+                if(data.vod_play_url){
+                    items['url'] = data.vod_play_url.replace(/\第(\d+)集\$/g,',').split(',').filter(v=>v&&/\.m3u8$/.test(v)).join(',');
+                }
+                newlist.push(items);
+            }
+            return newlist;
         }
     }
     let sw = navigator.serviceWorker;

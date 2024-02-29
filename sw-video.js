@@ -24,7 +24,7 @@
 "use strict";
 const CACHE_NAME = 'N-VIDEO';
 const CACHE_SQL_PATH = '/assets/sql.dat';
-const version = Date.parse('Thu Feb 29 2024 11:52:56 GMT+0800 (中国标准时间)');
+const version = Date.parse('Thu Feb 29 2024 18:16:56 GMT+0800 (中国标准时间)');
 const CACHE_ORIGIN = location.origin;
 //https://unpkg.com/ejs@3.1.9/ejs.min.js
 //https://unpkg.com/sql.js@1.10.2/dist/sql-wasm.js
@@ -359,13 +359,6 @@ const T = new class {
              * @param {String} isadd 是否追加
              */
             json2Data(jsondata,checksql,delsql,insertsql,keys,isadd){
-                if(!checksql){
-                    let sql = this.sql_text_by_data();
-                    checksql = sql[0];
-                    delsql = sql[1];
-                    insertsql = sql[2];
-                    keys = sql[3];
-                }
                 if(jsondata&&jsondata.constructor === Array){
                     for(let items of jsondata){
                         if(isadd)items['id'] = null;
@@ -382,6 +375,11 @@ const T = new class {
                         this.json2Insert(items,checksql,delsql,insertsql,keys);
                     }
                 }
+            },
+            json2add(jsondata,isadd){
+                let [checksql,delsql,insertsql,keys] = this.sql_text_by_data();
+                this.json2Data(jsondata,checksql,delsql,insertsql,keys,isadd);
+
             },
             /**
              * 更新数据库
@@ -812,7 +810,7 @@ Object.entries({
                         if(result){
                             let cache = await T.openCache();
                             let db = await T.readSQL(cache);
-                            db.json2Data(result,null,null,null,null,data.isadd);
+                            db.json2add(result,data.isadd);
                             await db.save(cache);
                             db.toFree();
                             source.postMessage({

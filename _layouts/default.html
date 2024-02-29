@@ -84,6 +84,12 @@
             <button onclick="T.toUpload('import')">导入文件(覆盖)</button>
             <p>此功能是直接处理数据库本身(SQLite文件)<br>因此可以直接分享你的影片库给你的朋友!共享影片库!</p>
           </li>
+          <li class="caiji">
+            <h3>视频采集</h3>
+            <label><input type="text" id="caiji-url" value="" placeholder="输入一个可采集地址[苹果CMS后台联盟采集]"></label>
+            <p><button onclick="T.caiji()">采集</button></p>
+            <p>带pg参数只采集当前页面,否则采集全部,请耐心等待!!!</p>
+          </li>
         </ul>
         <div>
           <h3>喜欢就点个赞~⛏</h3>
