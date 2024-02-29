@@ -119,7 +119,7 @@
                     /* 下载进度*/
                     chunks.push(value);
                     chunkSize += value.byteLength;
-                    progress(chunkSize,fullsize,value.byteLength);
+                    progress instanceof Function&&progress(chunkSize,fullsize,value.byteLength);
                 }
                 responseBuff =  new Uint8Array(await (new Blob(chunks)).arrayBuffer());
             }
@@ -173,11 +173,13 @@
                 await this.addJS('/assets/js/lib/aes-decryptor.js');
             }
             showinfo('解析文件中');
-            url = this.readPath(url);
+            url = this.getPath(url);
+            console.log(url);;
             let text = await this.FetchData(url,'text');
             if(!text) return showinfo('解析失败'+url);;
             let parser = new m3u8parser(text);
             if (!parser.manifest.segments.length) {
+                showinfo('解析成功!分析索引');
                 for(let item of parser.manifest.playlists){
                     //if (item.attributes) Object.assign(ATTR, item.attributes);
                     let uri1 = this.getPath(item.uri);
@@ -185,7 +187,7 @@
                     if (nextParser.manifest.segments.length) {
                         list.push(...nextParser.manifest.segments.map(v => {
                             v.uri = this.getPath(v.uri);
-                            if (v.key && I.str(v.key.uri)) {
+                            if (v.key &&typeof v.key.uri ==='string') {
                                 if (v.key.uri.charAt(0) == '/') {
                                     v.key.href = this.getPath(v.key.uri);
                                 }
@@ -196,9 +198,10 @@
     
                 }
             }else{
+                showinfo('解析成功!分析影片序列');
                 list.push(...parser.manifest.segments.map(v => {
                     v.uri = this.getPath(v.uri);
-                    if (v.key && I.str(v.key.uri)) {
+                    if (v.key && typeof v.key.uri === 'string') {
                         if (v.key.uri.charAt(0) == '/') {
                             v.key.href = this.getPath(v.key.uri);
                         }
@@ -217,28 +220,34 @@
                     let cp = fullsize>0?',当前进度'+(loadsize*100/fullsize).toFixed(2)+'%':'';
                     showinfo('下载中:'+(index+1)+'/'+list.length+sd+cp);
                 });
-                let buffer;
-                if (frag.key) {
-                    if (frag.key.href) {
-                        if (!keyData[frag.key.href]) {
-                            let buf = await this.FetchData(frag.key.href);
-                            keyData[frag.key.href] = buf.buffer;
+                if(databuf){
+                    let buffer;
+                    if (frag.key) {
+                        if (frag.key.href) {
+                            if (!keyData[frag.key.href]) {
+                                let buf = await this.FetchData(frag.key.href);
+                                if(buf){
+                                    keyData[frag.key.href] = buf.buffer;
+                                }else{
+                                    alert(frag.key.href);
+                                }
+                            }
+                            buffer = keyData[frag.key.href];
                         }
-                        buffer = keyData[frag.key.href];
+                        if (!nowbuff || nowbuff != buffer) {
+                            index = 0;
+                            nowbuff = buffer;
+                        }
+                        let aes = new AESDecryptor();
+                        aes.constructor();
+                        aes.expandKey(buffer);
+                        databuf = aes.decrypt(databuf.buffer, 0, new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, index]).buffer, !0);
+                        aes.destroy();
+                        aes = null;
                     }
-                    if (!nowbuff || nowbuff != buffer) {
-                        index = 0;
-                        nowbuff = buffer;
-                    }
-                    let aes = new AESDecryptor();
-                    aes.constructor();
-                    aes.expandKey(buffer);
-                    databuf = aes.decrypt(databuf.buffer, 0, new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, index]).buffer, !0);
-                    aes.destroy();
-                    aes = null;
+                    chunks.push(databuf);
+                    index++;
                 }
-                chunks.push(databuf);
-                index++;
                 //showinfo('完成:'+index+'/'+list.length);
             }
             if(!index) return;
