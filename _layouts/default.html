@@ -66,6 +66,7 @@
               <button onclick="T.toUpload('json',!1,'.text,.json');">覆盖json数据</button>
               <button onclick="T.toUpload('json',!0,'.text,.json');">追加json数据</button>
             </p>
+            <p>覆盖是以数据的ID更新数据,追加是总是额外添加.</p>
           </li>
           <li>
             <h3>缓存管理</h3>
@@ -74,7 +75,7 @@
               <button onclick="T.toClear('-CROSS-TS');">清空远程图片封面缓存</button>
             </p>
             <p>
-              <button onclick="T.toClear('-CROSS-DATA');">清空本地视频数据</button>
+              <button onclick="T.toClear('-CROSS-DATA');" style="background-color:#000;color:red;">清空本地视频数据</button>
               <button onclick="T.toClear('');" style="background-color:#000;color:red;">清空本地缓存文件</button>
             </p>
             <p>TS是缓存播放数据,占用随着播放视频量增加,删除视频并不会删除,只能全部清空.</p>
@@ -90,7 +91,7 @@
         </ul>
         <div>
           <h3>数据网盘</h3>
-          <img src="/assets/img/zan.jpg"><br>
+          <div style="text-align:center;"><img src="/assets/img/zan.jpg"></div>
           链接: <a href='https://pan.baidu.com/s/1RUXrdlYs9HCNULxT0KSakw'>https://pan.baidu.com/s/1RUXrdlYs9HCNULxT0KSakw</a> 提取码: 0000 复制这段内容后打开百度网盘手机App，操作更方便哦
         </div>
       </div>
