@@ -44,7 +44,7 @@ const T = new class {
             if(cachetime<version){
                 let response2 = await fetch(request).catch(e=>undefined);
                 if(response2){
-                    cache.put(request,response.clone());
+                    cache.put(url,response.clone());
                     return response2;
                 }
             }
@@ -889,6 +889,18 @@ Object.entries({
                                 result:data,
                             });
                         }
+                        break;
+                    }
+                    case 'checktime':{
+                        let data = '';
+                        let cache = await T.openCache();
+                        for(let request of await cache.keys()){
+                            data += `<b>${T.toPath(request.url)}:</b>${(await cache.match(request)).headers.get('date')}`;
+                        }
+                        source.postMessage({
+                            method:'notice',
+                            result:data,
+                        });
                         break;
                     }
                 }
