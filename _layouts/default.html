@@ -61,7 +61,9 @@
               <button onclick="T.toUpload('json',!1,'.text,.json');">覆盖json数据</button>
               <button onclick="T.toUpload('json',!0,'.text,.json');">追加json数据</button>
             </p>
-            <p>覆盖是以数据的ID更新数据,追加是总是额外添加.<br>导入过程可能等待很久,请勿其他操作,直至消息提醒!!!(苹果11测试处理1000条数据约3-5秒)</p>
+            <div class="wbox blue">
+              <p>覆盖是以数据的ID更新数据,追加是总是额外添加.<br>导入过程可能等待很久,请勿其他操作,直至消息提醒!!!(苹果11测试处理1000条数据约3-5秒)</p>
+            </div>
           </li>
           <li>
             <h3>缓存管理</h3>
@@ -71,34 +73,40 @@
               <button onclick="T.toClear('-CROSS-M3U8');">清空远程m3u8缓存</button>
             </p>
             <p>
-              <button onclick="T.toClear('-CROSS-DATA');" style="background-color:#000;color:red;">清空本地视频数据</button>
-              <button onclick="T.toClear('');" style="background-color:#000;color:red;">清空本地缓存文件</button>
+              <button onclick="T.toClear('-CROSS-DATA');" class="warning">清空本地视频数据</button>
+              <button onclick="T.toClear('');" class="warning">清空本地缓存文件</button><b>(异常时使用)</b>
             </p>
-            <p>TS是缓存播放数据,占用随着播放视频量增加,删除视频并不会删除,只能全部清空.</p>
-            <p>本地缓存文件删除会清空视频记录(模板,SQLite文件),如果出现模板文件不更新,可以清空初始化再导入视频记录数据</p>
-            <button onclick="T.update();">刷新PWA</button>
+            <div class="wbox blue">
+              <p>TS是缓存播放数据,占用随着播放视频量增加,播放页中删除视频并不会删除TS缓存,只能一次性全部清空.</p>
+              <p>本地缓存文件删除会清空视频记录(模板,SQLite文件),如果出现模板文件不更新,可以清空初始化再导入视频记录数据.</p>
+              <button onclick="T.update();">刷新PWA</button>
+            </div>
           </li>
           <li>
-            <h3>SQLite数据库处理</h3>
+            <h3>SQLite数据库管理</h3>
             <button onclick="T.export()">导出文件</button>
             <button onclick="T.toUpload('import')">导入文件(覆盖)</button>
-            <p>此功能是直接处理数据库本身(SQLite文件)<br>因此可以直接分享你的影片库给你的朋友!共享影片库!</p>
+            <div class="wbox blue">
+              <p>此功能是直接处理数据库本身(SQLite文件)<br>因此可以直接分享你的专属影片库给你的朋友!共享影片库!</p>
+            </div>
           </li>
           <li class="caiji">
-            <h3>视频采集</h3>
-            <label><input type="text" id="caiji-url" value="" placeholder="输入一个可采集地址[苹果CMS后台联盟采集]"></label>
-            <p><button onclick="T.caiji()">采集</button></p>
-            <p>带pg参数只采集当前页面,否则采集全部,请耐心等待!!!</p>
+            <h3>视频采集(<b style="color: red;">请找带跨域的采集资源中心API地址</b>)</h3>
+            <label><input type="text" id="caiji-url" value="" placeholder="输入一个可采集地址[苹果CMS后台联盟采集标准]"></label>
+            <p><button onclick="T.caiji(!1,this)">普通采集</button> <button onclick="T.caiji(!0,this)">更新式采集</button></p>
+            <div class="wbox blue">
+              <p>带<b>"pg=页面"</b>参数,<b>普通采集</b>只采集当前页面,否则采集全部,请耐心等待!!!<p>
+              <p>更新式采集:会发现数据重复立即停止采集.带页面参数仍旧会继续递增页面采集.</p>
+              <p>采集地址格式:<code>https://xxxxx/?ac=detail&t=分类名&pg=第几页</code></p>
+            </div>
           </li>
         </ul>
         <div>
           <h3>喜欢就点个赞~⛏</h3>
+          <div class="wbox blue">使用技巧:以苹果手机为例,添加1-2个到<b>主屏幕</b>,觉得A有好看的,单独把数据导入B.B可以作为专属收藏.添加到主屏幕的数据是独立的,A和B缓存不共享.所以避免太占用储存空间,A作为临时用,B作为永久影院.关于下载的TS格式视频,请使用例如<b>QQ影音</b>这里播放器可以播放的.</div>
           <div style="text-align:center;">
             <img src="/assets/img/zan.jpg">
-            <br>
-            <img src="/assets/img/zan.jpg">
           </div>
-          链接: <a href='https://pan.baidu.com/s/1RUXrdlYs9HCNULxT0KSakw'>https://pan.baidu.com/s/1RUXrdlYs9HCNULxT0KSakw</a> 提取码: 0000 复制这段内容后打开百度网盘手机App，操作更方便哦
         </div>
       </div>
   </dialog>

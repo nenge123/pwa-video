@@ -24,7 +24,7 @@
 "use strict";
 const CACHE_NAME = 'N-VIDEO';
 const CACHE_SQL_PATH = '/assets/sql.dat';
-const version = Date.parse('Thu Feb 29 2024 18:16:56 GMT+0800 (中国标准时间)');
+const version = Date.parse('Thu Feb 29 2024 20:41:56 GMT+0800 (中国标准时间)');
 const CACHE_ORIGIN = location.origin;
 //https://unpkg.com/ejs@3.1.9/ejs.min.js
 //https://unpkg.com/sql.js@1.10.2/dist/sql-wasm.js
@@ -400,7 +400,7 @@ const T = new class {
                     this.run(insertsql,this.getFillData(keys,!1,items));
                     
                 }
-                this.json2type(items['type']);
+                if(items['type'])this.json2type(items['type']);
             },
             /**
              * 写入分类
@@ -707,6 +707,105 @@ const T = new class {
         ejs.clearCache();
         return new Response(new Blob([response],{type:'text/html;charset=utf-8'}));
     }
+    async pc_caiji(url,ischeck,source){
+        let jsondata = await (await fetch(url)).json();
+        if(jsondata&&jsondata.list){
+            let maxpage = jsondata.pagecount;
+            let maxnum = jsondata.total;
+            let page = parseInt(jsondata.page||1);
+            let statehtml = `找到数据共${maxpage}页,${maxnum}条,当前第${page}页<br>`;
+            source&&source.postMessage({
+                method:'notice',
+                result:statehtml
+            });
+            let cache = await T.openCache();
+            let db = await T.readSQL(cache);
+            let [checksql,delsql,insertsql,keys] = db.sql_text_by_data();
+            let fistlist = this.pc_caiji_readlist(jsondata.list);
+            let fristerror = this.pc_caiji_check(db,checksql,delsql,insertsql,keys,fistlist,ischeck);
+            if(fristerror){
+                statehtml += `<div>检测到财富数据,终止写入:${fristerror}</div>`;
+                source&&source.postMessage({
+                    method:'notice',
+                    result:statehtml
+                });
+            }else{
+                if(url.indexOf('pg=') === -1||ischeck){
+                    for(let pg = page+1;pg<=maxpage;pg++){
+                        let newdata = await (await fetch(url+'&pg='+pg)).json();
+                        if(!newdata||!newdata.list) continue;
+                        let newlist = this.pc_caiji_readlist(newdata.list);
+                        statehtml +=`<div>已采集${pg}页</div>`;
+                        source&&source.postMessage({
+                            method:'notice',
+                            result:statehtml
+                        });
+                        let error = this.pc_caiji_check(db,checksql,delsql,insertsql,keys,newlist,ischeck);
+                        if(error){
+                            statehtml += `<div>检测到财富数据,终止写入:${error}</div>`;
+                            source&&source.postMessage({
+                                method:'notice',
+                                result:statehtml
+                            });
+                            break;
+                        }
+                    }
+                }else{
+                    for(let item of fistlist){
+                        statehtml += `<div>${item['type']}:${item['title']}</div>`;
+                        source&&source.postMessage({
+                            method:'notice',
+                            result:statehtml
+                        });
+                    }
+
+                }
+            }
+            await db.save(cache);
+            db.toFree();
+            statehtml += '<div>操作已完成!请返回首页</div>';
+            source&&source.postMessage({
+                method:'notice',
+                result:statehtml
+            });
+        }
+    }
+    pc_caiji_check(db,checksql,delsql,insertsql,keys,datalist,ischeck){
+        for(let items of datalist){
+            if(db.fetchResult(checksql,[items['id']])){
+                if(ischeck){
+                    return items['title']
+                }
+                db.run(delsql,[items['id']]);
+            }
+            db.run(insertsql,db.getFillData(keys,!1,items));
+            if(items['type'])db.json2type(items['type']);
+        }
+        return false;
+    }
+    pc_caiji_readlist(list){
+        let newlist = [];
+        for(let data of list){
+            let items = {};
+            if(data.vod_id){
+                items['id'] = data.vod_id;
+            }
+            if(data.type_name){
+                items['type'] = data.type_name;
+            }
+            if(data.vod_name){
+                items['title'] = data.vod_name;
+            }
+            if(data.vod_pic){
+                items['img'] = data.vod_pic;
+            }
+            if(data.vod_play_url){
+                items['url'] = data.vod_play_url.replace(/\第(\d+)集\$/g,',').split(',').filter(v=>v&&/\.m3u8$/.test(v)).join(',');
+            }
+            newlist.push(items);
+        }
+        return newlist;
+    }
 };
 importScripts(
     T.isLocal?'/assets/js/lib/sql.min.js':'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js',
@@ -895,6 +994,9 @@ Object.entries({
                             result:data,
                         });
                         break;
+                    }
+                    case 'caiji':{
+                        await T.pc_caiji(result,data.ischeck,source);
                     }
                 }
                 result = null;

@@ -456,8 +456,15 @@
                 dialogElm.querySelector('.content').innerHTML = '没找到数据';
             }
         }
-        async caiji(){
+        async caiji(ischeck,elm){
+            elm.remove();
             let url = document.querySelector('#caiji-url').value;
+            return this.postMessage({
+                method:'caiji',
+                result:url,
+                ischeck
+            });
+            
             let data = await this.ajax(url,'json');
             if(data&&data.list){
                 let maxpage = data.pagecount;
