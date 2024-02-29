@@ -24,7 +24,7 @@
 "use strict";
 const CACHE_NAME = 'N-VIDEO';
 const CACHE_SQL_PATH = '/assets/sql.dat';
-const version = Date.parse('Thu Feb 29 2024 11:31:56 GMT+0800 (中国标准时间)');
+const version = Date.parse('Thu Feb 29 2024 11:52:56 GMT+0800 (中国标准时间)');
 const CACHE_ORIGIN = location.origin;
 //https://unpkg.com/ejs@3.1.9/ejs.min.js
 //https://unpkg.com/sql.js@1.10.2/dist/sql-wasm.js
@@ -648,7 +648,7 @@ const T = new class {
                     navpage:leftnavs.concat(rightnavs)
                 });
             }else{
-                templates.error = '未能找得到符合条件数据,请返回首页重试!';
+                templates.error = '未能找得到符合条件数据,请返回首页重试!<br>或者右上角[缓存管理]导入数据!';
             }
             db.toFree();
         }
@@ -668,7 +668,7 @@ const T = new class {
             m3u8:[],
             imgsrc:'',
             id:0,
-            error:'未能找到符合条件影片,请返回首页重试!',
+            error:'未能找到符合条件影片,请返回首页重试!<br>或者右上角[缓存管理]导入数据!',
         };
         if(db){
             response = await this.getTemplate('/assets/template-play.html',cache);
@@ -701,8 +701,6 @@ const T = new class {
                         });
                     }
                 }
-            }else{
-
             }
             db.toFree();
         }
@@ -746,7 +744,7 @@ Object.entries({
                 return event.respondWith(T.CdnCache(request,'-UPLOAD-DATA'));
             }else{
                 let last = url.split('/').pop();
-                if(['js','dat','png','jpg','gif','ico','md','webp','yml','lock','css','svg'].includes(last)){
+                if(['js','png','jpg','gif','ico','md','webp','yml','lock','css','svg'].includes(last)){
                     if(T.isLocal) return;
                     return event.respondWith(T.LoaclCache(request));
                 }
@@ -768,8 +766,11 @@ Object.entries({
             if(/\.(jpg|gif|webp|png)$/ig.test(url)){
                 return event.respondWith(T.CdnCache(request,'-CROSS-IMAGES'));
             }
-            if(/\.(ts|key|m3u8)$/ig.test(url)){
+            if(/\.ts$/ig.test(url)){
                 return event.respondWith(T.CdnCache(request,'-CROSS-TS'));
+            }
+            if(/\.(key|m3u8)$/ig.test(url)){
+                return event.respondWith(T.CdnCache(request,'-CROSS-M3U8'));
             }
         }
         return false;

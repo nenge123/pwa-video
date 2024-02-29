@@ -39,13 +39,6 @@
       <a href="#">Jekyll</a>
     </p>
     <p class="c-red">由于使用访问即缓存模式<br>IOS切记添加书签到主屏幕!内存不够用可以删除书签重新添加!</p>
-    <p>
-      <span class="p-locality">GuangZhou</span>
-      <span class="p-country-name">China</span>
-    </p>
-    <p><button onclick="T.postMessage({method:'checkurl',result:location.href})">路由调试</button></p>
-    <p><button onclick="T.postMessage({method:'checktime'})">时间调试</button></p>
-    <p><button onclick="T.test3()">调试文本</button></p>
   </footer>
   <dialog id="pwa-register" class="wbox info" popover>
     <div class="title">
@@ -75,6 +68,7 @@
             <p>
               <button onclick="T.toClear('-CROSS-IMAGES');">清空TS视频缓存</button>
               <button onclick="T.toClear('-CROSS-TS');">清空远程图片封面缓存</button>
+              <button onclick="T.toClear('-CROSS-M3U8');">清空远程m3u8缓存</button>
             </p>
             <p>
               <button onclick="T.toClear('-CROSS-DATA');" style="background-color:#000;color:red;">清空本地视频数据</button>

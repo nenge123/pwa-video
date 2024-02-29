@@ -416,7 +416,8 @@
         constructor(){
             document.addEventListener('readystatechange',function(){
                 if(document.readyState=='complete'){
-                    document.querySelector('#btn-update-cache').addEventListener('click',function(){
+                    let elm = document.querySelector('#btn-update-cache');
+                    elm&&elm.addEventListener('click',function(){
                         T.showWin('#admin-act')
                     });
                     document.documentElement.addEventListener('gesturestart',function(e){
@@ -454,12 +455,6 @@
                 let dialogElm = this.showWin('#pwa-notice');
                 dialogElm.querySelector('.content').innerHTML = '没找到数据';
             }
-        }
-        async test3(){
-            let text = await T.ajax('https://jkunbf.com/20240118/hrnHgN2Q/index.m3u8',!0);
-            let dialogElm = this.showWin('#pwa-notice');
-            dialogElm.querySelector('.content').innerHTML = text;
-
         }
     }
     let sw = navigator.serviceWorker;
