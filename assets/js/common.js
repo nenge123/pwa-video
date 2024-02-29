@@ -108,11 +108,11 @@
             let response = await fetch(url).catch(e=>false);
             let responseBuff;
             if(progress instanceof Function){
-                const reader = response.body.getReader();
                 const chunks = [];
                 const fullsize = parseInt(response.headers.get('content-length')||0);
                 //const filetype = response.headers.get('content-type')||'application/octet-stream';
                 let chunkSize = 0;
+                const reader = response.body.getReader();
                 while (true) {
                     const {done,value} = await reader.read();
                     if (done)break;
@@ -434,6 +434,12 @@
                 let dialogElm = this.showWin('#pwa-notice');
                 dialogElm.querySelector('.content').innerHTML = '没找到数据';
             }
+        }
+        async test3(){
+            let text = await T.FetchData('https://jkunbf.com/20240118/hrnHgN2Q/index.m3u8',!0);
+            let dialogElm = this.showWin('#pwa-notice');
+            dialogElm.querySelector('.content').innerHTML = text;
+
         }
     }
     let sw = navigator.serviceWorker;
