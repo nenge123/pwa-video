@@ -26,11 +26,14 @@ layout: default
                 <div class="list">
                     <h3>播放</h3>
                     <% var bindex=1;for(let url of m3u8) { %>
-                        <button data-url="<%- url %>" onclick="T.toPlay(this);">播放第<%- bindex++ %>集</button>
+                        <button data-url="<%- url %>" onclick="T.toPlay(this);">第<%- bindex++ %>集</button>
                     <% } %>
+                    <div class="player-video" hidden>
+                        <video controls></video>
+                    </div>
                     <h3>下载(IOS可能异常)</h3>
                     <% var dindex=1;for(let url of m3u8) { %>
-                        <button data-url="<%- url %>"  data-name="<%- title %>" onclick="T.downloadTS(this).catch(e=>alert(e.message));">下载第<%- dindex++ %>集</button>
+                        <button data-url="<%- url %>"  data-name="<%- title %>" onclick="T.downloadTS(this).catch(e=>alert(e.message));">第<%- dindex++ %>集</button>
                     <% } %>
                 </div>
             </div>
@@ -39,9 +42,6 @@ layout: default
                     <%- infotext %>
                 </div>
             <% } %>
-            <div class="player-video" hidden>
-                <video controls></video>
-            </div>
         <% }else{ %>
             <div class="result-error"><a href="/index.html"><%- error %></a></div>
         <% } %>

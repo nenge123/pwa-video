@@ -62,11 +62,15 @@
             <button type="button" onclick="T.showWin('#w-caiji');">采集视频</button>
           </li>
           <li>
-            <button type="button" onclick="T.showWin('#w-caiji');">视频库分享与导入</button>(SQLite文件操作)
+            <button type="button" onclick="T.showWin('#w-share');">视频库分享与导入</button>(SQLite文件操作)
           </li>
           <li>
               <h3>最近播放记录</h3>
               <div id="play-jilu"></div>
+          </li>
+          <li>
+              <h3>调试</h3>
+              <button type="button" onclick="T.testZip(this);">导入测试数据</button>
           </li>
         </ul>
         <div>
@@ -160,7 +164,7 @@
         </ul>
     </div>
   </dialog>
-  <dialog id="w-cache" class="wbox" popover>
+  <dialog id="w-share" class="wbox" popover>
     <div class="title">分享管理</div>
     <div class="content">
       <button onclick="T.export()">分享你的视频库</button>
