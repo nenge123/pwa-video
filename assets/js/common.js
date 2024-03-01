@@ -158,6 +158,12 @@
             let src = elm.getAttribute('data-url');
             document.querySelector('.player-video').hidden = !1;
             let video = document.querySelector('video');
+            let data = localStorage.getItem('play-jilu')||'[]';
+            data = JSON.parse(data);
+            data = data.filter(v=>v['url']!=location.href);
+            data.unshift({url:location.href,title:document.title});
+            data = data.slice(0,10);
+            localStorage.setItem('play-jilu',JSON.stringify(data));
             if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = src;
                 video.addEventListener('canplay', function () {
@@ -300,7 +306,7 @@
             return str;
         }
         async unzip(result,password){
-            if(!window.zip){
+            if(!self.zip){
                 await T.addJS('/assets/js/lib/zip.min.js');
             }
             let ReaderList = await new zip.ZipReader(
@@ -406,11 +412,33 @@
             return T.postMessage({method:'delete-data',result:id});
         }
         async toExportId(id){
-            let data = await this.getResult('query-data',id);
-            if(data&&data.constructor === Object){
-                data = JSON.stringify(data);
-                let url = URL.createObjectURL(new Blob([`[${data}]`],{type:'text/json'}));
-                this.download(url,document.title+'.json')
+            let data = await this.getResult('get-data',id);
+            if(data&&data.constructor === Array){
+                let url;
+                let name = document.title+'.json';
+                if(data.length==1){
+                    url = URL.createObjectURL(new Blob([data[0][1]],{type:'text/json'}));
+                }else if(data.length>1){
+                    if(!self.zip){
+                        await T.addJS('/assets/js/lib/zip.min.js');
+                    }
+                    const zipFileWriter = new zip.BlobWriter();
+                    const zipWriter = new zip.ZipWriter(zipFileWriter);
+                    for(let items of data){
+                        await zipWriter.add(
+                            items[0],
+                            new zip.BlobReader(
+                                items[1] instanceof Blob?items[1]:new Blob([items[1]],{type:'application/json'})
+                            )
+                        );
+
+                    }
+                    await zipWriter.close();
+                    url = URL.createObjectURL(new Blob([await zipFileWriter.getData()],{type:'application/x-zip-compressed'}));
+                    name = document.title+'.zip';
+
+                }
+                if(url)this.download(url,name);
             }
         }
         constructor(){
@@ -420,12 +448,21 @@
                     elm&&elm.addEventListener('click',function(){
                         T.showWin('#admin-act')
                     });
-                    document.documentElement.addEventListener('gesturestart',function(e){
+                    document.addEventListener('gesturestart',function(e){
                         e.preventDefault();
                     });
-                    document.documentElement.addEventListener('touchstart',function(e){
-                        e.preventDefault();
-                    });
+                    let data = localStorage.getItem('play-jilu');
+                    if(data){
+                        data = JSON.parse(data);
+                        let html ='<ul>';
+                        for(let items of data){
+                            html += `<li><a href="${items['url']}">${items['title']}</a></li>`;
+                        }
+                        html += '</ul>';
+                        let elm = document.querySelector('#play-jilu');
+                        if(elm)elm.innerHTML = html;
+                    }
+
                 }
             });
         }

@@ -23,8 +23,10 @@
  */
 "use strict";
 const CACHE_NAME = 'N-VIDEO';
+const UPLOAD_NAME =  '-UPLOAD-DATA';
+const UPLOAD_PATH =  '/upload/data/';
 const CACHE_SQL_PATH = '/assets/sql.dat';
-const version = Date.parse('Thu Feb 29 2024 20:41:56 GMT+0800 (中国标准时间)');
+const version = Date.parse('Fri Mar 01 2024 10:22:08 GMT+0800 (中国标准时间)');
 const CACHE_ORIGIN = location.origin;
 //https://unpkg.com/ejs@3.1.9/ejs.min.js
 //https://unpkg.com/sql.js@1.10.2/dist/sql-wasm.js
@@ -48,20 +50,6 @@ const T = new class {
         }
         return response||this.toStatus(404);
     }
-    async checkUpate(){
-        let cache = await this.openCache();
-        let size = 0;
-        await Promise.all((await cache.keys()).map(async request=>{
-            if(request.url.indexOf(CACHE_SQL_PATH)!== -1) return;
-            let modified = (await fetch(request.url+'?'+version,{method:'HEAD'})).headers.get('last-modified');
-            let cachetime = (await cache.match(request)).headers.get('last-modified');
-            if(modified!=cachetime){
-                size ++;
-                await cache.put(request,(await fetch(request.url)).clone());
-            }
-        }));
-
-    }
     async CdnCache(request,NAME){
         let cache = await this.openCache(NAME);
         let response = await cache.match(request);
@@ -69,11 +57,9 @@ const T = new class {
             response = await fetch(request).catch(e=>undefined);
             if(response){
                 cache.put(request,response.clone());
-            }else{
-                return this.toStatus(404)
             }
         }
-        return response;
+        return response||this.toStatus(404);
     }
     async getMessage(ARG,source){
         const T = this;
@@ -308,7 +294,7 @@ const T = new class {
              */
             async zip2Data(data,cache,isadd){
                 if(!cache)cache = await this.T.openCache();
-                let UploadCache = await this.T.openCache('-UPLOAD-DATA');
+                let UploadCache = await this.T.openCache(UPLOAD_NAME);
                 let [checksql,delsql,insertsql,keys] = this.sql_text_by_data();
                 this.T.toArray(data,entry=>{
                     if(/\.json$/.test(entry[0])){
@@ -324,10 +310,14 @@ const T = new class {
                             throw 'zip data error';
                         }
                     }else{
-                        let mime = entry[0].split('.').pop();
+                        let name = entry[0];
+                        let mime = name.split('.').pop();
                         let filetype = /m3u8$/.test(mime)?'application/vnd.apple.mpegURL':/(jpg|png|gif|webp)$/i.test(mime)?'image/'+mime:'application/octet-stream';
+                        if(mime.indexOf('image')==0){
+                            name = name.split('.')[0]+'.jpg';
+                        }
                         UploadCache.put(
-                            '/upload/data/'+entry[0],
+                            UPLOAD_PATH+name,
                             new Response(
                                 new Blob(
                                     [entry[1]],
@@ -465,7 +455,7 @@ const T = new class {
                 return this.getFillData(keys,str,data).join(sp||',');
             },
             getFillData(keys,str,data){
-                return this.T.toArray(keys,v=>data&&data[v]?data[v]:str?str:'`'+v+'`');
+                return this.T.toArray(keys,v=>data?data[v]?data[v]:'':str?str:'`'+v+'`');
             },
             getUpdate(table,data,where,like){
                 return `UPDATE \`${table}\` SET ${data} ${this.getWhere(where,like)} ;`;
@@ -596,12 +586,11 @@ const T = new class {
                 let limitext = ((page-1)*limit)+','+limit;
                 let data = db.query('data',where,ordertext,limitext,!0);
                 if(data){
-                    let UploadCache = await this.openCache('-UPLOAD-DATA');
+                    let UploadCache = await this.openCache(UPLOAD_NAME);
                     for(let items of data){
                         let itemid = items['id'];
                         let img = items['img'];
-                        let imgext = img ? img.split('.').pop():'jpg';
-                        let img2 = '/upload/data/'+itemid+'.'+imgext;
+                        let img2 = UPLOAD_PATH+itemid+'.jpg';
                         templates.list.push({
                             url:`/?${items['id']}/`,
                             img:await UploadCache.match(img2)?img2:img,
@@ -650,7 +639,7 @@ const T = new class {
             }
             db.toFree();
         }
-        if(!response)return this.LoaclCache('/index.html',cache);
+        if(!response)return fetch('/index.html');
         response =  ejs.compile(response)(templates);
         ejs.clearCache();
         return new Response(new Blob([response],{type:'text/html;charset=utf-8'}));
@@ -676,16 +665,13 @@ const T = new class {
                 itemdata = db.query('data',{id},!1,1);
                 if(itemdata){
                     itemdata['id'] = parseInt(itemdata['id']);
-                    let UploadCache = await this.openCache('-UPLOAD-DATA');
+                    let UploadCache = await this.openCache(UPLOAD_NAME);
                     let img = itemdata['img'];
-                    let imgext = img ? img.split('.').pop():'jpg';
-                    let img2 = '/upload/data/'+itemdata['id']+'.'+imgext;
+                    let img2 = UPLOAD_PATH+itemdata['id']+'.jpg';
                     let imgsrc = await UploadCache.match(img2)?img2:img;
-                    if(!itemdata['url']){
-                        let m3u8 = '/upload/data/'+itemdata['id']+'.m3u8';
-                        if(await UploadCache.match(m3u8)){
-                            itemdata['url'] = m3u8;
-                        }
+                    let m3u8 = UPLOAD_PATH+itemdata['id']+'.m3u8';
+                    if(await UploadCache.match(m3u8)){
+                        itemdata['url'] = m3u8;
                     }
                     if(itemdata['url']){
                         let m3u8 = itemdata['url'].split(',');
@@ -702,7 +688,7 @@ const T = new class {
             }
             db.toFree();
         }
-        if(!response)return this.LoaclCache('/index.html',cache);
+        if(!response)return fetch('/index.html');
         response =  ejs.compile(response)(templates);
         ejs.clearCache();
         return new Response(new Blob([response],{type:'text/html;charset=utf-8'}));
@@ -731,6 +717,7 @@ const T = new class {
                 });
             }else{
                 if(url.indexOf('pg=') === -1||ischeck){
+                    statehtml +=`<div>已采集${page}页</div>`;
                     for(let pg = page+1;pg<=maxpage;pg++){
                         let newdata = await (await fetch(url+'&pg='+pg)).json();
                         if(!newdata||!newdata.list) continue;
@@ -837,8 +824,8 @@ Object.entries({
             }else if(url.indexOf('/assets')===0){
                 if(T.isLocal) return false;
                 return event.respondWith(T.LoaclCache(request));
-            }else if(url.indexOf('/upload/data/')===0){
-                return event.respondWith(T.CdnCache(request,'-UPLOAD-DATA'));
+            }else if(url.indexOf(UPLOAD_PATH)===0){
+                return event.respondWith(T.CdnCache(request,UPLOAD_NAME));
             }else{
                 let last = url.split('/').pop();
                 if(['js','png','jpg','gif','ico','md','webp','yml','lock','css','svg'].includes(last)){
@@ -944,6 +931,9 @@ Object.entries({
                             db.run(sql3,[result]);
                             db.save(cache);
                             db.toFree();
+                            let cache2 = await caches.open(CACHE_NAME+UPLOAD_NAME);
+                            cache2.delete(UPLOAD_PATH+result+'.m3u8');
+                            cache2.delete(UPLOAD_PATH+result+'.jpg');
                             source.postMessage({
                                 method:'notice',
                                 result:'此视频数据已删除,请自行返回首页!',
@@ -951,10 +941,39 @@ Object.entries({
                         }
                         break;
                     }
+                    case 'get-data':{
+                        let cache2 = await caches.open(CACHE_NAME+UPLOAD_NAME);
+                        let m3u8 = await cache2.match(UPLOAD_PATH+result+'.m3u8');
+                        let img = await cache2.match(UPLOAD_PATH+result+'.jpg');
+                        let db = await T.readSQL();
+                        let data = db.query('data',{id:result},null,1);
+                        db.toFree();
+                        let newresult = [[result+'.json',JSON.stringify(data)]];
+                        if(m3u8){
+                            newresult.push([result+'.m3u8',await m3u8.blob()]);
+                        }
+                        if(img){
+                            newresult.push([result+'.jpg',await img.blob()]);
+                        }
+                        source.postMessage({
+                            clientID,
+                            result:newresult,
+                        });
+                        break;
+                    }
                     case 'cachename':{
                         if(clientID){
                             return source.postMessage({
                                 result:CACHE_NAME,
+                                clientID
+                            });
+                        }
+                        break;
+                    }
+                    case 'uploadname':{
+                        if(clientID){
+                            return source.postMessage({
+                                result:CACHE_NAME+UPLOAD_NAME,
                                 clientID
                             });
                         }

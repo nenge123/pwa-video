@@ -1088,31 +1088,31 @@ dialog.wbox {
         margin: auto;
     }
 }
-#admin-act{
-    ul{
-        margin: 0px;
-        padding: 5px;
-        list-style: none;
-        li{
-            margin: 8px 0px;
-            >p{
-                margin: 1px;
-                padding: 1px;
-            }
-        }
-    }
+.wbox{
     >.content{
         button{
             margin: 5px 2px;
         }
-    }
-    .caiji{
-        input{
-            width: 98%;
-            font-size: 14px;
+        >ul{
+            margin: 0px;
+            padding: 5px;
+            list-style: none;
+            li{
+                margin: 8px 0px;
+                >p{
+                    margin: 1px;
+                    padding: 1px;
+                }
+            }
         }
-    }
-    .warning{
-        background-color:#000;color:#fff;
+        label{
+            >input{
+                width: 98%;
+                font-size: 14px;
+            }
+        }
+        .warning{
+            background-color:#000;color:#fff;
+        }
     }
 }

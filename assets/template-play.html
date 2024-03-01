@@ -13,8 +13,8 @@ layout: default
             此页是虚拟页面
             <button id="btn-update-cache" type="button">缓存管理</button>
             <% if(typeof id !=='undefined'){ %>
-                <button type="button" onclick="T.toDelete('<%- id %>',this);">删除此视频</button>
-                <button type="button" onclick="T.toExportId('<%- id %>',this);">导出此视频</button>
+                <button type="button" onclick="T.toDelete('<%- id %>',this);">删除视频</button>
+                <button type="button" onclick="T.toExportId('<%- id %>',this);">导出视频</button>
             <% } %>
         </div>
     </div>

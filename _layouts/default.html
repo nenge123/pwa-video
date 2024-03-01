@@ -50,55 +50,23 @@
   <dialog id="admin-act" class="wbox" popover>
       <div class="title">管理中心</div>
       <div class="content">
+        <h3>请选择你的操作</h3>
         <ul>
           <li>
-            <h3>视频数据导入</h3>
-            <p>
-              <button onclick="T.toUpload('zip',!1);">覆盖zip数据包</button>
-              <button onclick="T.toUpload('zip',!0);">追加zip数据包</button>
-            </p>
-            <p>
-              <button onclick="T.toUpload('json',!1,'.text,.json');">覆盖json数据</button>
-              <button onclick="T.toUpload('json',!0,'.text,.json');">追加json数据</button>
-            </p>
-            <div class="wbox blue">
-              <p>覆盖是以数据的ID更新数据,追加是总是额外添加.<br>导入过程可能等待很久,请勿其他操作,直至消息提醒!!!(苹果11测试处理1000条数据约3-5秒)</p>
-            </div>
+            <button type="button" onclick="T.showWin('#w-add-data');">基础数据导入</button>(如播放页的导出可以从此处导入)
           </li>
           <li>
-            <h3>缓存管理</h3>
-            <p>
-              <button onclick="T.toClear('-CROSS-IMAGES');">清空TS视频缓存</button>
-              <button onclick="T.toClear('-CROSS-TS');">清空远程图片封面缓存</button>
-              <button onclick="T.toClear('-CROSS-M3U8');">清空远程m3u8缓存</button>
-            </p>
-            <p>
-              <button onclick="T.toClear('-CROSS-DATA');" class="warning">清空本地视频数据</button>
-              <button onclick="T.toClear('');" class="warning">清空本地缓存文件</button><b>(异常时使用)</b>
-            </p>
-            <div class="wbox blue">
-              <p>TS是缓存播放数据,占用随着播放视频量增加,播放页中删除视频并不会删除TS缓存,只能一次性全部清空.</p>
-              <p>本地缓存文件删除会清空视频记录(模板,SQLite文件),如果出现模板文件不更新,可以清空初始化再导入视频记录数据.</p>
-              <button onclick="T.update();">刷新PWA</button>
-            </div>
+            <button type="button" onclick="T.showWin('#w-cache');">缓存管理</button>(释放手机储存空间)
           </li>
           <li>
-            <h3>SQLite数据库管理</h3>
-            <button onclick="T.export()">导出文件</button>
-            <button onclick="T.toUpload('import')">导入文件(覆盖)</button>
-            <div class="wbox blue">
-              <p>此功能是直接处理数据库本身(SQLite文件)<br>因此可以直接分享你的专属影片库给你的朋友!共享影片库!</p>
-            </div>
+            <button type="button" onclick="T.showWin('#w-caiji');">采集视频</button>
           </li>
-          <li class="caiji">
-            <h3>视频采集(<b style="color: red;">请找带跨域的采集资源中心API地址</b>)</h3>
-            <label><input type="text" id="caiji-url" value="" placeholder="输入一个可采集地址[苹果CMS后台联盟采集标准]"></label>
-            <p><button onclick="T.caiji(!1,this)">普通采集</button> <button onclick="T.caiji(!0,this)">更新式采集</button></p>
-            <div class="wbox blue">
-              <p>带<b>"pg=页面"</b>参数,<b>普通采集</b>只采集当前页面,否则采集全部,请耐心等待!!!<p>
-              <p>更新式采集:会发现数据重复立即停止采集.带页面参数仍旧会继续递增页面采集.</p>
-              <p>采集地址格式:<code>https://xxxxx/?ac=detail&t=分类名&pg=第几页</code></p>
-            </div>
+          <li>
+            <button type="button" onclick="T.showWin('#w-caiji');">视频库分享与导入</button>(SQLite文件操作)
+          </li>
+          <li>
+              <h3>最近播放记录</h3>
+              <div id="play-jilu"></div>
           </li>
         </ul>
         <div>
@@ -116,5 +84,92 @@
         更新成功
       </div>
   </dialog>
+  <dialog id="w-add-data" class="wbox" popover>
+    <div class="title">数据添加</div>
+    <div class="content">
+      <div class="wbox blue">
+        <p>覆盖是以数据的ID更新数据,追加是总是额外添加.<br>导入过程可能等待很久,请勿其他操作,直至消息提醒!!!(苹果11测试处理1000条数据约3-5秒)</p>
+      </div>
+      <p>
+        <button onclick="T.toUpload('json',!1,'.text,.json');">覆盖json数据</button>
+        <button onclick="T.toUpload('json',!0,'.text,.json');">追加json数据</button>
+      </p>
+      <div class="wbox blue">
+        <p>导入json数据应以<code>[{数据1},{数据2},...]</code></p>
+        <p>数据格式标准<code>{id:'唯一ID',title:'标题',type:'分类名',url:'视频地址,多个用逗号隔开',img:'封面图片地址'}</code></p>
+      </div>
+      <p>
+        <button onclick="T.toUpload('zip',!1);">覆盖zip数据包</button>
+        <button onclick="T.toUpload('zip',!0);">追加zip数据包</button>
+      </p>
+      <div class="wbox blue">
+        <p>zip包含:json数据标准文件,或者视频索引,图片封面</p>
+        <p>图片应以唯一ID作为文件名,如 <code>1000.jpg</code></p>
+        <p>视频索引唯一ID作为文件名,如 <code>1000.m3u8</code></p>
+      </div>
+    </div>
+  </dialog>
+  <dialog id="w-caiji" class="wbox" popover>
+    <div class="title">视频采集</div>
+    <div class="content">
+      <label>
+        <input type="text" id="caiji-url" value="" placeholder="输入一个可采集地址">
+      </label>
+      <div class="wbox">
+        <h3 class="title">苹果CMS后台联盟采集标准</h3>
+        <div class="content">
+          <p>
+            <button onclick="T.caiji(!1,this)">普通采集</button> <button onclick="T.caiji(!0,this)">更新式采集</button>
+          </p>
+          <div class="wbox blue">
+            <p>带<b>"pg=页面"</b>参数,<b>普通采集</b>只采集当前页面,否则采集全部,请耐心等待!!!<p>
+            <p>更新式采集:会发现数据重复立即停止采集.带页面参数仍旧会继续递增页面采集.</p>
+            <p>采集地址格式:<br><code>https://xxxxx/?ac=detail&t=分类名&pg=第几页</code></p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </dialog>
+  <dialog id="w-cache" class="wbox" popover>
+    <div class="title">缓存管理</div>
+    <div class="content">
+        <ul>
+          <li>
+            <button onclick="T.toClear('-CROSS-IMAGES');">清空远程TS视频</button>
+            <div class="wbox blue">
+              TS缓存碎片会占用大量手机储存空间,高清30分钟约400MB,标清30分钟200MB.清空有助于释放空间占用.
+            </div>
+            <button onclick="T.toClear('-CROSS-TS');">清空远程图片</button>
+            <div class="wbox blue">
+                此缓存可以缓存远程图片封面
+            </div>
+            <button onclick="T.toClear('-CROSS-M3U8');">清空远程m3u8缓存</button>
+            <div class="wbox blue">
+                如果下载视频失败,可能与此有关,可以尝试清空.
+            </div>
+            <button onclick="T.toClear('-CROSS-DATA');" class="warning">清空本地视频数据</button>
+            <div class="wbox blue">
+                此缓存是特殊的,是zip数据包中的视频索引文件,图片封面等.
+            </div>
+            <button onclick="T.toClear('');" class="warning">清空本地缓存文件</button><b>(异常时使用)</b>
+            <div class="wbox blue">
+                此缓存是特殊的,删除可以重置网站基本,当使用过程出现问题,先导出SQLite数据,再清空,初始化后再导入.
+            </div>
+          </li>
+        </ul>
+    </div>
+  </dialog>
+  <dialog id="w-cache" class="wbox" popover>
+    <div class="title">分享管理</div>
+    <div class="content">
+      <button onclick="T.export()">分享你的视频库</button>
+      <button onclick="T.toUpload('import')">导入他人视频数据库(替换原有视频)</button>
+      <div class="wbox blue">
+        <p>此功能是直接处理数据库本身(SQLite文件)<br>因此可以直接分享你的专属影片库给你的朋友!共享影片库!</p>
+      </div>
+    </div>
+  </dialog>
+  </body>
 </body>
 </html>
