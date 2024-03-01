@@ -560,12 +560,12 @@
             return newlist;
         }
         async testZip(elm){
+            elm.remove();
             this.postMessage({
                 method:'add-zip',
                 result:await this.unzip(await T.ajax('/assets/test.zip')),
                 isadd:!1
             });
-            elm.remove();
         }
     }
     let sw = navigator.serviceWorker;

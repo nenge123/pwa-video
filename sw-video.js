@@ -26,7 +26,7 @@ const CACHE_NAME = 'N-VIDEO';
 const UPLOAD_NAME =  '-UPLOAD-DATA';
 const UPLOAD_PATH =  '/upload/data/';
 const CACHE_SQL_PATH = '/assets/sql.dat';
-const version = Date.parse('Fri Mar 01 2024 19:23:08 GMT+0800 (中国标准时间)');
+const version = Date.parse('Fri Mar 01 2024 19:35:08 GMT+0800 (中国标准时间)');
 const CACHE_ORIGIN = location.origin;
 //https://unpkg.com/ejs@3.1.9/ejs.min.js
 //https://unpkg.com/sql.js@1.10.2/dist/sql-wasm.js
