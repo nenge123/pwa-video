@@ -191,6 +191,7 @@
             let showinfo = str=>{
                 elm.innerHTML=str;
             };
+            let version = await this.getResult('version'); 
             let url = elm.getAttribute('data-url');
             const list = [];
             if(!self.m3u8parser){
@@ -199,7 +200,7 @@
                 await this.addJS('/assets/js/lib/aes-decryptor.js');
             }
             showinfo('解析文件中');
-            url = this.getPath(url);
+            url = this.getPath(url+'?'+version);
             console.log(url);;
             let m3u8Text = await this.ajax(url,!0);
             if(!m3u8Text) return showinfo('解析失败'+m3u8Text);;
@@ -208,7 +209,7 @@
                 showinfo('解析成功!分析索引');
                 for(let item of parser.manifest.playlists){
                     //if (item.attributes) Object.assign(ATTR, item.attributes);
-                    let m3u8Url = this.getPath(item.uri);
+                    let m3u8Url = this.getPath(item.uri+'?'+version);
                     let nextParser = new m3u8parser(await this.ajax(m3u8Url, !0));
                     if (nextParser.manifest.segments.length) {
                         list.push(...nextParser.manifest.segments.map(v => {
@@ -251,7 +252,7 @@
                     if (frag.key) {
                         if (frag.key.href) {
                             if (!keyData[frag.key.href]) {
-                                let buf = await this.ajax(frag.key.href);
+                                let buf = await this.ajax(frag.key.href+'?'+version);
                                 if(buf){
                                     keyData[frag.key.href] = buf.buffer;
                                 }else{

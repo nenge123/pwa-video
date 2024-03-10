@@ -26,7 +26,7 @@ const CACHE_NAME = 'N-VIDEO';
 const UPLOAD_NAME =  '-UPLOAD-DATA';
 const UPLOAD_PATH =  '/upload/data/';
 const CACHE_SQL_PATH = '/assets/sql.dat';
-const version = Date.parse('Fri Mar 01 2024 19:37:08 GMT+0800 (中国标准时间)');
+const version = Date.parse('Fri Mar 03 2024 16:00:08 GMT+0800 (中国标准时间)');
 const CACHE_ORIGIN = location.origin;
 //https://unpkg.com/ejs@3.1.9/ejs.min.js
 //https://unpkg.com/sql.js@1.10.2/dist/sql-wasm.js
@@ -43,7 +43,7 @@ const T = new class {
         let response = await cache.match(url);
         let cachetime = response&&Date.parse(response.headers.get('date'));
         if(!response||response&&navigator.onLine&&cachetime<version){
-            response = await fetch(request).catch(e=>undefined);
+            response = await fetch(request,{headers:{'pragema':'no-cache','cache-control':'no-cache'}}).catch(e=>undefined);
             if(response){
                 cache.put(url,response.clone());
             }
@@ -166,41 +166,9 @@ const T = new class {
             }
         }
         return params;
-        let str = pathname[0].split('#')[0];
-        if(pathname[1]){
-            for(let entry of pathname[1].split('&')){
-                let keys = entry.split('=');
-                params.set(keys[0],decodeURI(keys[1]||''));
-            }
-        }
-        let index = 0;
-        if(/^\/[\w\-]+\.html$/.test(str)){
-            for(let value of str.split('.html')[0].split('/').pop().split('-')){
-                params.set(index,value);
-                index++;
-            }
-        }else{
-            index=-1;
-            for(let value of str.split('/')){
-                if(index>=0)params.set(index,value);
-                index++;
-            }
-        } 
-        if(params.get(0)){
-            params.set('router',params.get(0));
-        }else{
-            params.set('router','index');
-        }
-        if(!isNaN(params.get(1))){
-            params.set('id',params.get(1));
-            params.set('order',params.get(2)||'desc');
-        }else{
-            params.set('order',params.get(1)||'desc');
-        }
-        return params;
     }
     async initSQL(back){
-        let response = await this.CdnCache('https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.wasm','-CROSS-JS');
+        let response = await this.CdnCache(this.isLocal?'/assets/js/lib/sql.wasm':'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.wasm','-CROSS-JS');
         initSqlJs({
             wasmBinary:new Uint8Array(await response.arrayBuffer())
         });
@@ -532,12 +500,24 @@ const T = new class {
         if(!this.SQL)await this.sqlReady;
         if(!cache)cache = await this.openCache();
         let response = await cache.match(CACHE_SQL_PATH);
+        let db;
         if(response){
             response =  (new Uint8Array(await response.arrayBuffer()));
         }
-        const db = new this.SQL.Database(response||undefined);
+        db = new this.SQL.Database(response||undefined);
         if(!response){
             await db.load(cache);
+        }else{
+            try{
+                db.fetchFirst('pragma table_info(data);')
+            }catch(e){
+                response = null;
+                db.toFree();
+                this.SQL._sqlite3_free();
+                this.SQL._free();
+                db = new this.SQL.Database(undefined);
+                await db.load(cache);
+            }
         }
         return db;
     }
@@ -736,6 +716,7 @@ const T = new class {
                             });
                             break;
                         }
+                        await db.save(cache);
                     }
                 }else{
                     for(let item of fistlist){
@@ -855,7 +836,7 @@ Object.entries({
             if(/\.(jpg|gif|webp|png)$/ig.test(url)){
                 return event.respondWith(T.CdnCache(request,'-CROSS-IMAGES'));
             }
-            if(/\.ts$/ig.test(url)){
+            if(/\.(ts|mp4|m4a)$/ig.test(url)){
                 return event.respondWith(T.CdnCache(request,'-CROSS-TS'));
             }
             if(/\.(key|m3u8)$/ig.test(url)){
@@ -993,6 +974,15 @@ Object.entries({
                         }
                         break;
                     }
+                    case 'version':{
+                        if(clientID){
+                            return source.postMessage({
+                                result:version,
+                                clientID
+                            });
+                        }
+                        break;
+                    }
                     case 'query-data':{
                         if(result&&clientID){
                             let cache = await T.openCache();
@@ -1011,6 +1001,12 @@ Object.entries({
                         let cache = await T.openCache();
                         for(let request of await cache.keys()){
                             let date = new Date(Date.parse((await cache.match(request)).headers.get('date'))).toLocaleString();
+                            if(request.url.indexOf(CACHE_SQL_PATH)===false){
+                                let newrespon = await await fetch(request.url,{headers:{'pragema':'no-cache','cache-control':'no-cache'}}).catch(e=>false);
+                                if(newrespon){
+                                    await cache.put(request,newrespon);
+                                }
+                            }
                             data += `<b>${T.toPath(request.url)}:</b>${date}`;
                         }
                         source.postMessage({
