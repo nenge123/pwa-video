@@ -434,6 +434,7 @@
         }
         async toExportId(id){
             let data = await this.getResult('get-data',id);
+            console.log(data);
             if(data&&data.constructor === Array){
                 let url;
                 let name = document.title+'.json';

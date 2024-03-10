@@ -252,6 +252,7 @@ const T = new class {
                     let str = this.T.toArray(entry[1],keys=>{
                         return `\`${keys[0]}\` ${keys[1]}`;
                     }).join(',');
+                    this.run(`DROP TABLE \`${entry[0]}\`;`);
                     this.run(`CREATE TABLE \`${entry[0]}\` (${str});`);
                 });
                 return this.save();
@@ -319,14 +320,14 @@ const T = new class {
             json2Data(jsondata,checksql,delsql,insertsql,keys,isadd){
                 if(jsondata&&jsondata.constructor === Array){
                     for(let items of jsondata){
-                        if(isadd)items['id'] = null;
+                        if(isadd)items['id'] = '';
                         this.json2Insert(items,checksql,delsql,insertsql,keys);
                     }
                 }else if(jsondata&&jsondata.constructor === Object){
                     for(let id in jsondata){
                         let items = jsondata[id];
                         if(isadd){
-                            items['id'] = null;
+                            items['id'] = '';
                         }else if(!items['id']&&!isNaN(id)){
                             items['id'] = parseInt(id);
                         }
@@ -336,6 +337,7 @@ const T = new class {
             },
             json2add(jsondata,isadd){
                 let [checksql,delsql,insertsql,keys] = this.sql_text_by_data();
+                if(jsondata['id'])jsondata = [jsondata];
                 this.json2Data(jsondata,checksql,delsql,insertsql,keys,isadd);
 
             },
@@ -353,9 +355,9 @@ const T = new class {
                     }
                     this.run(insertsql,this.getFillData(keys,!1,items));
                 }else{
-                    let id = this.query('data',null,null,!1,0,'max(id)');
-                    items['id'] = id + 1;
-                    this.run(insertsql,this.getFillData(keys,!1,items));
+                    let id = this.query('data',null,null,!1,0,'max(id)')||0;
+                    let items2 = Object.assign(items,{id:parseInt(id) + 1});
+                    this.run(insertsql,this.getFillData(keys,!1,items2));
                     
                 }
                 if(items['type'])this.json2type(items['type']);
@@ -934,7 +936,7 @@ Object.entries({
                         let db = await T.readSQL();
                         let data = db.query('data',{id:result},null,1);
                         db.toFree();
-                        let newresult = [[result+'.json',JSON.stringify(data)]];
+                        let newresult = [[result+'.json',JSON.stringify([data])]];
                         if(m3u8){
                             newresult.push([result+'.m3u8',await m3u8.blob()]);
                         }
@@ -983,6 +985,18 @@ Object.entries({
                         }
                         break;
                     }
+                    case 'cleardb':{
+                        let cache = await T.openCache();
+                        let db = await T.readSQL(cache);
+                        let data = db.load(cache);
+                        db.toFree();
+                        source.postMessage({
+                            method:'notice',
+                            result:'清空成功!',
+                            reload:!0
+                        });
+                        break;
+                    }
                     case 'query-data':{
                         if(result&&clientID){
                             let cache = await T.openCache();
@@ -1001,8 +1015,8 @@ Object.entries({
                         let cache = await T.openCache();
                         for(let request of await cache.keys()){
                             let date = new Date(Date.parse((await cache.match(request)).headers.get('date'))).toLocaleString();
-                            if(request.url.indexOf(CACHE_SQL_PATH)===false){
-                                let newrespon = await await fetch(request.url,{headers:{'pragema':'no-cache','cache-control':'no-cache'}}).catch(e=>false);
+                            if(request.url.indexOf(CACHE_SQL_PATH)===-1){
+                                let newrespon = await fetch(request.url,{headers:{'pragema':'no-cache','cache-control':'no-cache'}}).catch(e=>false);
                                 if(newrespon){
                                     await cache.put(request,newrespon);
                                 }
