@@ -159,11 +159,16 @@
             document.querySelector('.player-video').hidden = !1;
             let video = document.querySelector('video');
             let data = localStorage.getItem('play-jilu')||'[]';
-            data = JSON.parse(data);
-            data = data.filter(v=>v['url']!=location.href);
-            data.unshift({url:location.href,title:document.title});
-            data = data.slice(0,10);
-            localStorage.setItem('play-jilu',JSON.stringify(data));
+            data = JSON.parse(data)||[];
+            if(data&&data instanceof Array){
+
+            }else{
+                data = [];
+            }
+                data = data.filter(v=>v['url']!=location.href);
+                data.unshift({url:location.href,title:document.title});
+                data = data.slice(0,10);
+                localStorage.setItem('play-jilu',JSON.stringify(data));
             if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = src;
                 video.addEventListener('canplay', function () {
