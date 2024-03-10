@@ -252,7 +252,6 @@ const T = new class {
                     let str = this.T.toArray(entry[1],keys=>{
                         return `\`${keys[0]}\` ${keys[1]}`;
                     }).join(',');
-                    this.run(`DROP TABLE \`${entry[0]}\`;`);
                     this.run(`CREATE TABLE \`${entry[0]}\` (${str});`);
                 });
                 return this.save();
@@ -988,7 +987,10 @@ Object.entries({
                     case 'cleardb':{
                         let cache = await T.openCache();
                         let db = await T.readSQL(cache);
-                        let data = db.load(cache);
+                        T.toArray(db.columns,entry=>{
+                            db.run(`DROP TABLE \`${entry[0]}\`;`);
+                        });
+                        db.load(cache);
                         db.toFree();
                         source.postMessage({
                             method:'notice',
