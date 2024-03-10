@@ -1007,7 +1007,7 @@ Object.entries({
                                     await cache.put(request,newrespon);
                                 }
                             }
-                            data += `<b>${T.toPath(request.url)}:</b>${date}`;
+                            data += `<p><b>${T.toPath(request.url)}:</b>${date}</p>`;
                         }
                         source.postMessage({
                             method:'notice',
