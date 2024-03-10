@@ -206,9 +206,27 @@
             let parser = new m3u8parser(m3u8Text);
             if (!parser.manifest.segments.length) {
                 showinfo('解析成功!分析索引');
-                for(let item of parser.manifest.playlists){
-                    //if (item.attributes) Object.assign(ATTR, item.attributes);
-                    let m3u8Url = this.getPath(item.uri);
+                if(parser.manifest.playlists&&parser.manifest.playlists.length){                    
+                    for(let item of parser.manifest.playlists){
+                        //if (item.attributes) Object.assign(ATTR, item.attributes);
+                        let m3u8Url = this.getPath(item.uri);
+                        let nextParser = new m3u8parser(await this.ajax(m3u8Url, !0));
+                        if (nextParser.manifest.segments.length) {
+                            list.push(...nextParser.manifest.segments.map(v => {
+                                v.uri = this.getPath(v.uri);
+                                if (v.key &&typeof v.key.uri ==='string') {
+                                    if (v.key.uri.charAt(0) == '/') {
+                                        v.key.href = this.getPath(v.key.uri);
+                                    }
+                                }
+                                return v;
+                            }));
+                        }
+        
+                    }
+                }else if(parser.lineStream&&parser.lineStream.buffer){
+                    let m3u8Url = this.getPath(parser.lineStream.buffer);
+                    m3u8Url = this.getPath(m3u8Url);
                     let nextParser = new m3u8parser(await this.ajax(m3u8Url, !0));
                     if (nextParser.manifest.segments.length) {
                         list.push(...nextParser.manifest.segments.map(v => {
@@ -221,7 +239,7 @@
                             return v;
                         }));
                     }
-    
+
                 }
             }else{
                 showinfo('解析成功!分析影片序列');
@@ -293,6 +311,7 @@
         }
         readPath(url){
             let urlInfo = new URL(url);
+            this.urlmap = url.split('/').slice(0,-1).join('/')+'/';
             this.origin = urlInfo.origin;
     
         }
@@ -302,6 +321,8 @@
                 this.readPath(str);
             }else if(str.charAt(0)==='/'){
                 str = (this.origin||location.origin)+str; 
+            }else if(this.urlmap){
+                str = this.urlmap+str; 
             }
             return str;
         }
@@ -453,7 +474,8 @@
                     });
                     let data = localStorage.getItem('play-jilu');
                     if(data){
-                        data = JSON.parse(data);
+                        data = JSON.parse(data)||[];
+                        if(!data.length) data = [];
                         let html ='<ul>';
                         for(let items of data){
                             html += `<li><a href="${items['url']}">${items['title']}</a></li>`;
@@ -464,7 +486,7 @@
                     }else{   
                         fetch('/assets/template-play.html');
                         fetch('/assets/template-home.html');
-                        localStorage.setItem('play-jilu','{}');
+                        localStorage.setItem('play-jilu','[]');
                     }
 
                 }
